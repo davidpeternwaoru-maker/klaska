@@ -1,0 +1,12 @@
+# Normalise line endings: store as LF in the repo, check out native on each OS.
+# This stops the "LF will be replaced by CRLF" noise on Windows.
+* text=auto eol=lf
+
+# Binary assets — never touch their bytes.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

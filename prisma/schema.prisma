@@ -1,0 +1,108 @@
+// ───────────────────────────────────────────────────────────────────────────
+// Klaska database schema (Prisma + PostgreSQL/Neon)
+//
+// Every `model` below becomes a real table in your Postgres database. Prisma
+// reads this file to (a) generate a fully type-safe client you call from code,
+// and (b) create/alter the actual tables via migrations.
+//
+// The shape is multi-tenant: one School owns its Staff, Classes and Students.
+// A logged-in user is a Staff member, so the school's data is always scoped by
+// schoolId — School A can never see School B's records.
+// ───────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Pooled connection — used by the running app (many short-lived queries).
+  url       = env("DATABASE_URL")
+  // Direct connection — used by `prisma migrate` to change the schema.
+  directUrl = env("DIRECT_URL")
+}
+
+// The three starting roles. Stored as a Postgres enum for safety.
+enum Role {
+  OWNER
+  BURSAR
+  TEACHER
+}
+
+// A school = one tenant/account. The first person to sign up becomes its OWNER.
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  shortName String?
+  address   String?
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff    Staff[]
+  classes  Class[]
+  students Student[]
+}
+
+// A staff member. This is also the *login account* — email + password live here.
+model Staff {
+  id           String   @id @default(cuid())
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId     String
+  name         String
+  email        String   @unique // used to log in; unique across the whole system
+  passwordHash String // never store raw passwords — only a bcrypt hash
+  role         Role     @default(TEACHER)
+  title        String? // e.g. "Mathematics Teacher", "Head of Science"
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // A teacher can be the form teacher of one or more classes.
+  classesLed Class[] @relation("ClassTeacher")
+
+  @@index([schoolId])
+}
+
+// A class/arm, e.g. "JSS 1" arm "A". Belongs to a school, may have a teacher.
+model Class {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  name      String // level, e.g. "JSS 1"
+  arm       String? // stream, e.g. "A" (optional)
+  teacher   Staff?   @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  teacherId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students Student[]
+
+  // No two classes in the same school can share the same name + arm.
+  @@unique([schoolId, name, arm])
+  @@index([schoolId])
+}
+
+// A student. Belongs to a school, optionally assigned to a class.
+model Student {
+  id            String    @id @default(cuid())
+  school        School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId      String
+  firstName     String
+  lastName      String
+  admissionNo   String? // e.g. "KLK-0001"
+  gender        String? // "M" / "F"
+  dob           DateTime?
+  guardianName  String?
+  guardianPhone String?
+  class         Class?    @relation(fields: [classId], references: [id], onDelete: SetNull)
+  classId       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Admission numbers are unique within a school (not globally).
+  @@unique([schoolId, admissionNo])
+  @@index([schoolId])
+  @@index([classId])
+}

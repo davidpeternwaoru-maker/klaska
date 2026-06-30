@@ -1,12 +1,19 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 
-/** Full-width product shell: rail + sub-panel + top bar + scrolling content.
- *  No demo chrome — this is the live Klaska web dashboard.
- *  The offline engine is a singleton (lib/offline), so no provider is needed. */
+// The real, database-backed app (auth screens + /dashboard) brings its own
+// chrome, so we render those routes bare. Everything else still gets the
+// original prototype shell (rail + sub-panel + top bar).
+const BARE_PREFIXES = ["/login", "/signup", "/dashboard"];
+
+/** Full-width product shell: rail + sub-panel + top bar + scrolling content. */
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  if (BARE_PREFIXES.some((p) => pathname.startsWith(p))) return <>{children}</>;
+
   return (
     <div className="flex h-screen overflow-hidden bg-background text-ink">
       <Sidebar />

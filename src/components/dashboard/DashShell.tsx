@@ -16,6 +16,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard/staff", label: "Staff", icon: "badge" },
   { href: "/dashboard/classes", label: "Classes", icon: "layers" },
   { href: "/dashboard/attendance", label: "Attendance", icon: "attendance" },
+  { href: "/dashboard/results", label: "Results", icon: "reports" },
 ];
 
 export function DashShell({

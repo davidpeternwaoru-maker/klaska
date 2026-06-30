@@ -44,6 +44,8 @@ model School {
   classes    Class[]
   students   Student[]
   attendance Attendance[]
+  subjects   Subject[]
+  results    Result[]
 }
 
 // A staff member. This is also the *login account* — email + password live here.
@@ -104,6 +106,7 @@ model Student {
   updatedAt     DateTime  @updatedAt
 
   attendance Attendance[]
+  results    Result[]
 
   // Admission numbers are unique within a school (not globally).
   @@unique([schoolId, admissionNo])
@@ -130,4 +133,46 @@ model Attendance {
   @@unique([studentId, date]) // a student has exactly one mark per day
   @@index([schoolId, date])
   @@index([classId, date])
+}
+
+// Subjects offered by the school (e.g. Mathematics, English).
+model Subject {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  name      String
+  code      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  results Result[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+}
+
+// One student's score in one subject. CA1 (/20) + CA2 (/20) + Exam (/60) →
+// total (/100) → grade. total & grade are computed in the action on save.
+// (Term-scoping comes later with the Session/Term backbone.)
+model Result {
+  id         String   @id @default(cuid())
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId   String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId  String
+  classId    String? // snapshot of the student's class when entered (for filtering)
+  ca1        Int?
+  ca2        Int?
+  exam       Int?
+  total      Int?
+  grade      String?
+  recordedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([studentId, subjectId]) // one score per subject (per term, later)
+  @@index([schoolId])
+  @@index([subjectId, classId])
 }

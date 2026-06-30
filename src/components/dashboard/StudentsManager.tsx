@@ -5,6 +5,7 @@
 // re-renders this page with fresh data automatically — no manual refetch.
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Card, Pill } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { createStudent, updateStudent, deleteStudent, type ActionState } from "@/lib/actions/students";
@@ -146,7 +147,13 @@ export function StudentsManager({ students, classes }: { students: StudentRow[];
           <Pill tone="neutral">{students.length}</Pill>
         </div>
         {students.length === 0 ? (
-          <div className="px-4 pb-8 pt-2 text-center text-[13px] text-ink-4">No students yet. Add your first one →</div>
+          <div className="flex flex-col items-center gap-2 px-4 pb-9 pt-5 text-center">
+            <div className="text-[13px] text-ink-4">No students yet.</div>
+            <Link href="/dashboard/students/import" className="text-[13px] font-medium text-forest hover:underline">
+              Import a list from a spreadsheet →
+            </Link>
+            <div className="text-[12px] text-ink-4">or add one with the form on the right.</div>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[13px]">

@@ -4,10 +4,10 @@
 // password, so they can sign in immediately. Only owners/bursars see this work
 // (the server action enforces it regardless of the UI).
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Card, Pill } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
-import { createStaff, deleteStaff, type ActionState } from "@/lib/actions/staff";
+import { createStaff, deleteStaff, resetStaffPassword, type ActionState } from "@/lib/actions/staff";
 
 export type StaffRow = {
   id: string;
@@ -79,7 +79,46 @@ function AddForm() {
   );
 }
 
+function ResetModal({ staff, onClose }: { staff: StaffRow; onClose: () => void }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(resetStaffPassword, {});
+  useEffect(() => {
+    if (state.ok) onClose();
+  }, [state.ok, state, onClose]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="mt-16 w-full max-w-[420px]" onClick={(e) => e.stopPropagation()}>
+        <Card>
+          <div className="mb-1 text-[14px] font-semibold text-ink">Reset password</div>
+          <div className="mb-3 text-[12.5px] text-ink-4">
+            Set a new password for <span className="font-medium text-ink-2">{staff.name}</span>. Share it with them; they can sign in immediately.
+          </div>
+          <form action={action} className="flex flex-col gap-3">
+            <input type="hidden" name="id" value={staff.id} />
+            <input
+              name="password"
+              type="text"
+              required
+              placeholder="New password (min. 6 chars)"
+              className="h-9 w-full rounded-[9px] border border-border bg-secondary px-2.5 text-[13px] text-ink outline-none focus:border-forest-line focus:bg-card"
+            />
+            {state.error && <p className="text-[12.5px] font-medium text-red">{state.error}</p>}
+            <div className="flex gap-2">
+              <button disabled={pending} className="h-9 rounded-[9px] bg-forest px-4 text-[13px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+                {pending ? "Saving…" : "Set password"}
+              </button>
+              <button type="button" onClick={onClose} className="h-9 rounded-[9px] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 export function StaffManager({ staff }: { staff: StaffRow[] }) {
+  const [resetting, setResetting] = useState<StaffRow | null>(null);
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
       <Card pad={0} className="overflow-hidden">
@@ -109,16 +148,21 @@ export function StaffManager({ staff }: { staff: StaffRow[] }) {
                     <Pill tone={roleTone[s.role]}>{s.role.toLowerCase()}</Pill>
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    {s.isSelf ? (
-                      <span className="text-[11.5px] text-ink-4">you</span>
-                    ) : (
-                      <form action={deleteStaff} className="inline">
-                        <input type="hidden" name="id" value={s.id} />
-                        <button title="Remove" className="rounded-[7px] p-1.5 text-ink-3 hover:bg-red-soft hover:text-red">
-                          <Icon name="trash" size={15} />
-                        </button>
-                      </form>
-                    )}
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => setResetting(s)} title="Reset password" className="rounded-[7px] p-1.5 text-ink-3 hover:bg-secondary hover:text-ink">
+                        <Icon name="refresh" size={15} />
+                      </button>
+                      {s.isSelf ? (
+                        <span className="px-1 text-[11.5px] text-ink-4">you</span>
+                      ) : (
+                        <form action={deleteStaff} className="inline">
+                          <input type="hidden" name="id" value={s.id} />
+                          <button title="Remove" className="rounded-[7px] p-1.5 text-ink-3 hover:bg-red-soft hover:text-red">
+                            <Icon name="trash" size={15} />
+                          </button>
+                        </form>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -128,6 +172,7 @@ export function StaffManager({ staff }: { staff: StaffRow[] }) {
       </Card>
 
       <AddForm />
+      {resetting && <ResetModal staff={resetting} onClose={() => setResetting(null)} />}
     </div>
   );
 }

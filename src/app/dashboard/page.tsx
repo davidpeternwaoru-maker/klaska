@@ -7,6 +7,28 @@ import { prisma } from "@/lib/db";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { Icon, type IconName } from "@/components/ui/Icon";
 
+function ChecklistStep({ done, n, href, title, hint, cta }: { done: boolean; n: number; href: string; title: string; hint: string; cta: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-[12px] border border-border p-3">
+      <span
+        className="flex h-7 w-7 flex-none items-center justify-center rounded-full text-[12px] font-bold"
+        style={{ background: done ? "var(--color-forest)" : "var(--color-secondary)", color: done ? "#fff" : "var(--color-ink-4)" }}
+      >
+        {done ? <Icon name="check" size={15} /> : n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className={`text-[13px] font-medium ${done ? "text-ink-4 line-through" : "text-ink"}`}>{title}</div>
+        <div className="text-[11.5px] text-ink-4">{hint}</div>
+      </div>
+      {!done && (
+        <Link href={href} className="flex-none rounded-[9px] bg-forest px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:bg-forest-2">
+          {cta}
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default async function OverviewPage() {
   const user = await requireUser();
   const where = { schoolId: user.schoolId };
@@ -43,12 +65,13 @@ export default async function OverviewPage() {
       </div>
 
       <Card className="mt-6">
-        <div className="text-[14px] font-semibold text-ink">Getting started</div>
-        <ol className="mt-3 flex list-decimal flex-col gap-1.5 pl-5 text-[13px] text-ink-2">
-          <li>Create your classes (e.g. JSS 1, Primary 4) on the <Link href="/dashboard/classes" className="font-medium text-forest hover:underline">Classes</Link> page.</li>
-          <li>Add staff and give each a login on the <Link href="/dashboard/staff" className="font-medium text-forest hover:underline">Staff</Link> page.</li>
-          <li>Enrol students and assign them to a class on the <Link href="/dashboard/students" className="font-medium text-forest hover:underline">Students</Link> page.</li>
-        </ol>
+        <div className="text-[14px] font-semibold text-ink">Set up your school</div>
+        <div className="mt-1 text-[12.5px] text-ink-4">Three steps to get going. They tick off automatically as you go.</div>
+        <div className="mt-4 flex flex-col gap-2">
+          <ChecklistStep done={classes > 0} n={1} href="/dashboard/classes" title="Create your classes" hint="e.g. JSS 1, Primary 4" cta="Add classes" />
+          <ChecklistStep done={staff > 1} n={2} href="/dashboard/staff" title="Add your staff" hint="give each a login & role" cta="Add staff" />
+          <ChecklistStep done={students > 0} n={3} href="/dashboard/students/import" title="Import your students" hint="upload a spreadsheet — done in seconds" cta="Import students" />
+        </div>
       </Card>
     </div>
   );

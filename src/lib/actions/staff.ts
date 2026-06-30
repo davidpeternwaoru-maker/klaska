@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { hashPassword } from "@/lib/auth/password";
+import { denyUnless, CAN_MANAGE_STAFF } from "@/lib/auth/guard";
 import type { Role } from "@/lib/auth/jwt";
 
 export type ActionState = { error?: string; ok?: boolean };
@@ -16,7 +17,8 @@ const ROLES: Role[] = ["OWNER", "BURSAR", "TEACHER"];
 
 export async function createStaff(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
-  if (user.role === "TEACHER") return { error: "Only an owner or bursar can add staff." };
+  const denied = denyUnless(user, ...CAN_MANAGE_STAFF);
+  if (denied) return denied;
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -42,9 +44,28 @@ export async function createStaff(_prev: ActionState, formData: FormData): Promi
 
 export async function deleteStaff(formData: FormData): Promise<void> {
   const user = await requireUser();
-  if (user.role === "TEACHER") return;
+  if (denyUnless(user, ...CAN_MANAGE_STAFF)) return;
   const id = String(formData.get("id") ?? "");
   // Never let someone delete their own account (would lock them out).
   if (id && id !== user.staffId) await prisma.staff.deleteMany({ where: { id, schoolId: user.schoolId } });
   revalidatePath("/dashboard/staff");
+}
+
+/** Owner/Bursar sets a new password for a staff member (no email needed). */
+export async function resetStaffPassword(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const denied = denyUnless(user, ...CAN_MANAGE_STAFF);
+  if (denied) return denied;
+
+  const id = String(formData.get("id") ?? "");
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 6) return { error: "New password must be at least 6 characters." };
+
+  const res = await prisma.staff.updateMany({
+    where: { id, schoolId: user.schoolId },
+    data: { passwordHash: await hashPassword(password) },
+  });
+  if (res.count === 0) return { error: "Staff member not found." };
+  revalidatePath("/dashboard/staff");
+  return { ok: true };
 }

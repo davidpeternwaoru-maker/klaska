@@ -98,3 +98,91 @@ export async function deleteStudent(formData: FormData): Promise<void> {
   revalidatePath("/dashboard/students");
   revalidatePath("/dashboard");
 }
+
+/* ----------------------------- bulk import ----------------------------- */
+// A single parsed spreadsheet row (built in the browser from an .xlsx/CSV).
+export type ImportRow = {
+  firstName: string;
+  lastName: string;
+  gender?: string | null;
+  dob?: string | null; // ISO yyyy-mm-dd
+  admissionNo?: string | null;
+  className?: string | null; // free text from the sheet (e.g. "JSS 1 A")
+  guardianName?: string | null;
+  guardianPhone?: string | null;
+};
+export type ImportResult = { created: number; classesCreated: string[]; skipped: number; error?: string };
+
+const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+
+/** Insert many students at once. Optionally creates classes named in the sheet
+ *  that don't exist yet. Blank admission numbers are auto-generated. */
+export async function importStudents(rows: ImportRow[], createMissingClasses: boolean): Promise<ImportResult> {
+  const user = await requireUser();
+  if (!rows?.length) return { created: 0, classesCreated: [], skipped: 0, error: "No rows to import." };
+
+  // Build a lookup of this school's existing classes (by "name arm" and by name).
+  const existing = await prisma.class.findMany({ where: { schoolId: user.schoolId } });
+  const classByLabel = new Map<string, string>();
+  for (const c of existing) {
+    classByLabel.set(norm(c.arm ? `${c.name} ${c.arm}` : c.name), c.id);
+    classByLabel.set(norm(c.name), c.id);
+  }
+  const classesCreated: string[] = [];
+
+  async function resolveClass(label?: string | null): Promise<string | null> {
+    if (!label || !label.trim()) return null;
+    const key = norm(label);
+    const hit = classByLabel.get(key);
+    if (hit) return hit;
+    if (!createMissingClasses) return null;
+    const created = await prisma.class.create({ data: { schoolId: user.schoolId, name: label.trim() } });
+    classByLabel.set(key, created.id);
+    classesCreated.push(label.trim());
+    return created.id;
+  }
+
+  // Only rows with both names are valid; the rest are skipped.
+  const valid = rows.filter((r) => r.firstName?.trim() && r.lastName?.trim());
+  const skipped = rows.length - valid.length;
+
+  let nextNo = (await prisma.student.count({ where: { schoolId: user.schoolId } })) + 1;
+  const data: {
+    schoolId: string;
+    firstName: string;
+    lastName: string;
+    admissionNo: string;
+    gender: string | null;
+    dob: Date | null;
+    guardianName: string | null;
+    guardianPhone: string | null;
+    classId: string | null;
+  }[] = [];
+
+  for (const r of valid) {
+    const classId = await resolveClass(r.className);
+    const admissionNo = r.admissionNo?.trim() || `KLK-${String(nextNo++).padStart(4, "0")}`;
+    data.push({
+      schoolId: user.schoolId,
+      firstName: r.firstName.trim(),
+      lastName: r.lastName.trim(),
+      admissionNo,
+      gender: r.gender?.trim() || null,
+      dob: r.dob ? new Date(r.dob) : null,
+      guardianName: r.guardianName?.trim() || null,
+      guardianPhone: r.guardianPhone?.trim() || null,
+      classId,
+    });
+  }
+
+  let created = 0;
+  try {
+    const res = await prisma.student.createMany({ data, skipDuplicates: true });
+    created = res.count;
+  } catch {
+    return { created: 0, classesCreated, skipped, error: "Saving failed — check for duplicate admission numbers in the file." };
+  }
+  revalidatePath("/dashboard/students");
+  revalidatePath("/dashboard");
+  return { created, classesCreated, skipped };
+}

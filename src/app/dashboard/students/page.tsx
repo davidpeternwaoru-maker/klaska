@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { SectionTitle } from "@/components/ui/primitives";
+import { Icon } from "@/components/ui/Icon";
 import { StudentsManager, type StudentRow, type ClassOption } from "@/components/dashboard/StudentsManager";
 
 function classLabel(c: { name: string; arm: string | null }) {
@@ -30,7 +32,16 @@ export default async function StudentsPage() {
 
   return (
     <div className="mx-auto max-w-[1100px]">
-      <SectionTitle eyebrow="People" title="Students" sub="Enrol students and assign them to a class. Everything saves to the database." />
+      <SectionTitle
+        eyebrow="People"
+        title="Students"
+        sub="Enrol students and assign them to a class. Everything saves to the database."
+        right={
+          <Link href="/dashboard/students/import" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <Icon name="download" size={15} style={{ transform: "rotate(180deg)" }} /> Import from spreadsheet
+          </Link>
+        }
+      />
       <StudentsManager students={rows} classes={classOptions} />
     </div>
   );

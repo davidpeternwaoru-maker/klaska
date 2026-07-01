@@ -7,10 +7,14 @@ import { NAV_GROUPS, type NavGroup } from "@/lib/nav";
 import { Icon, KLogo } from "@/components/ui/Icon";
 import { SCHOOL } from "@/data/overview";
 
-export function Sidebar() {
+export function Sidebar({ school }: { school: { name: string; shortName: string; logoUrl: string | null } | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
+
+  // Show the logged-in school (falls back to the demo name when signed out).
+  const displayName = school?.name || SCHOOL.name;
+  const displayShort = school?.shortName || SCHOOL.shortName;
 
   // Which group the current route belongs to (drives the rail highlight even
   // when the panel is collapsed).
@@ -96,11 +100,16 @@ export function Sidebar() {
         <div className="flex h-full w-[232px] flex-col p-3">
           {/* school switcher */}
           <button className="flex w-full items-center gap-2.5 rounded-[12px] border border-border bg-card p-2.5 text-left transition hover:bg-secondary">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-forest font-display text-[12px] font-semibold text-white">
-              {SCHOOL.shortName}
-            </span>
+            {school?.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={school.logoUrl} alt={displayName} className="h-8 w-8 flex-none rounded-[9px] object-contain" />
+            ) : (
+              <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[9px] bg-forest font-display text-[12px] font-semibold text-white">
+                {displayShort}
+              </span>
+            )}
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-semibold leading-tight text-ink">{SCHOOL.name}</span>
+              <span className="block truncate text-[13px] font-semibold leading-tight text-ink">{displayName}</span>
               <span className="block text-[11px] text-ink-4">{SCHOOL.term}</span>
             </span>
             <Icon name="chevD" size={14} style={{ color: "var(--color-ink-4)" }} />

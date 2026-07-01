@@ -9,14 +9,16 @@ import { TopBar } from "./TopBar";
 // original prototype shell (rail + sub-panel + top bar).
 const BARE_PREFIXES = ["/login", "/signup", "/dashboard", "/onboarding"];
 
+export type ShellSchool = { name: string; shortName: string; logoUrl: string | null } | null;
+
 /** Full-width product shell: rail + sub-panel + top bar + scrolling content. */
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ school, children }: { school?: ShellSchool; children: React.ReactNode }) {
   const pathname = usePathname();
   if (BARE_PREFIXES.some((p) => pathname.startsWith(p))) return <>{children}</>;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-ink">
-      <Sidebar />
+      <Sidebar school={school ?? null} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
         <main className="flex-1 overflow-auto px-8 py-7">{children}</main>

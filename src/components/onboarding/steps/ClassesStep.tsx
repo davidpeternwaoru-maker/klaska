@@ -9,7 +9,7 @@ import { StepHead, StepFooter } from "../ui";
 
 type Row = { create: boolean; arms: number };
 
-export function ClassesStep({ sections, existing, onDone, ctaLabel }: { sections: string[]; existing: WizardClass[]; onDone: () => void; ctaLabel?: string }) {
+export function ClassesStep({ sections, existing, onCreated, onDone, ctaLabel }: { sections: string[]; existing: WizardClass[]; onCreated?: (classes: WizardClass[]) => void; onDone: () => void; ctaLabel?: string }) {
   const groups = levelsForSections(sections);
   const existingNames = new Set(existing.map((c) => c.name));
   const [rows, setRows] = useState<Record<string, Row>>(() => {
@@ -27,7 +27,8 @@ export function ClassesStep({ sections, existing, onDone, ctaLabel }: { sections
       const items = Object.entries(rows)
         .filter(([, v]) => v.create)
         .map(([name, v]) => ({ name, arms: v.arms <= 1 ? [] : ARM_LETTERS.slice(0, v.arms) }));
-      await createClassesBulk(items);
+      const res = await createClassesBulk(items);
+      if (res.classes) onCreated?.(res.classes);
       onDone();
     });
 

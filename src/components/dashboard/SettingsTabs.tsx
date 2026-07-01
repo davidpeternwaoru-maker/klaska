@@ -9,9 +9,21 @@ import { ProfileStep } from "@/components/onboarding/steps/ProfileStep";
 import { StructureStep } from "@/components/onboarding/steps/StructureStep";
 import { GradingStep } from "@/components/onboarding/steps/GradingStep";
 import { FeesStep } from "@/components/onboarding/steps/FeesStep";
-import type { WizardSchool, WizardBand, WizardFee } from "@/components/onboarding/types";
+import type { WizardSchool, WizardClass, WizardBand, WizardFeeItem, WizardFeeAmounts } from "@/components/onboarding/types";
 
-export function SettingsTabs({ school, grading, fees }: { school: WizardSchool; grading: Record<string, WizardBand[]>; fees: WizardFee[] }) {
+export function SettingsTabs({
+  school,
+  grading,
+  classes,
+  feeItems,
+  feeAmounts,
+}: {
+  school: WizardSchool;
+  grading: Record<string, WizardBand[]>;
+  classes: WizardClass[];
+  feeItems: WizardFeeItem[];
+  feeAmounts: WizardFeeAmounts;
+}) {
   const [tab, setTab] = useState("profile");
   const [saved, setSaved] = useState(false);
   const done = () => {
@@ -38,7 +50,7 @@ export function SettingsTabs({ school, grading, fees }: { school: WizardSchool; 
         {tab === "profile" && <ProfileStep school={school} onDone={done} ctaLabel="Save changes" />}
         {tab === "sections" && <StructureStep sections={school.sections} onDone={done} ctaLabel="Save changes" />}
         {tab === "grading" && <GradingStep sections={school.sections} existing={grading} onDone={done} ctaLabel="Save changes" />}
-        {tab === "fees" && <FeesStep sections={school.sections} existing={fees} onDone={done} ctaLabel="Save changes" />}
+        {tab === "fees" && <FeesStep classes={classes} items={feeItems} amounts={feeAmounts} onDone={done} ctaLabel="Save changes" />}
       </div>
     </div>
   );

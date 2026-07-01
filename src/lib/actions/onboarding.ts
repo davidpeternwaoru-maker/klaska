@@ -55,8 +55,11 @@ export async function saveSections(sections: string[]): Promise<SetupState> {
   return { ok: true };
 }
 
-/** Create classes in bulk from chosen levels + arms (skips ones that exist). */
-export async function createClassesBulk(items: { name: string; arms: string[] }[]): Promise<SetupState> {
+export type ClassLite = { id: string; name: string; arm: string | null };
+
+/** Create classes in bulk from chosen levels + arms (skips ones that exist).
+ *  Returns the school's full class list so the wizard's later steps stay fresh. */
+export async function createClassesBulk(items: { name: string; arms: string[] }[]): Promise<SetupState & { classes: ClassLite[] }> {
   const user = await requireUser();
   const data: { schoolId: string; name: string; arm: string | null }[] = [];
   for (const it of items) {
@@ -64,9 +67,10 @@ export async function createClassesBulk(items: { name: string; arms: string[] }[
     for (const arm of arms) data.push({ schoolId: user.schoolId, name: it.name, arm: arm || null });
   }
   if (data.length) await prisma.class.createMany({ data, skipDuplicates: true });
+  const classes = await prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] });
   revalidatePath("/onboarding");
   revalidatePath("/dashboard/classes");
-  return { ok: true };
+  return { ok: true, classes: classes.map((c) => ({ id: c.id, name: c.name, arm: c.arm })) };
 }
 
 export async function saveGrading(
@@ -95,27 +99,35 @@ export async function saveGrading(
   return { ok: true };
 }
 
-export async function saveFees(
-  items: { name: string; amount: number; appliesTo?: string; mandatory: boolean }[],
+/** Save the whole fee structure: the fee types + a per-class amount grid.
+ *  `cells` are amounts keyed by fee item name + classId. */
+export async function saveFeeStructure(
+  items: { name: string; mandatory: boolean }[],
+  cells: { itemName: string; classId: string; amount: number }[],
 ): Promise<SetupState> {
   const user = await requireUser();
   const denied = denyUnless(user, ...CAN_MANAGE_SCHOOL);
   if (denied) return denied;
-  const clean = items.filter((i) => i.name.trim());
-  await prisma.$transaction([
-    prisma.feeItem.deleteMany({ where: { schoolId: user.schoolId } }),
-    prisma.feeItem.createMany({
-      data: clean.map((i, idx) => ({
-        schoolId: user.schoolId,
-        name: i.name.trim(),
-        amount: Math.max(0, Math.round(i.amount || 0)),
-        appliesTo: i.appliesTo || "ALL",
-        mandatory: !!i.mandatory,
-        order: idx,
-      })),
-    }),
-  ]);
+
+  const cleanItems = items.filter((i) => i.name.trim());
+  // Replace the existing structure (deleting fee items cascades their amounts).
+  await prisma.feeItem.deleteMany({ where: { schoolId: user.schoolId } });
+
+  const nameToId = new Map<string, string>();
+  for (let idx = 0; idx < cleanItems.length; idx++) {
+    const it = cleanItems[idx];
+    const created = await prisma.feeItem.create({ data: { schoolId: user.schoolId, name: it.name.trim(), mandatory: it.mandatory, order: idx } });
+    nameToId.set(it.name.trim(), created.id);
+  }
+
+  const classIds = new Set((await prisma.class.findMany({ where: { schoolId: user.schoolId }, select: { id: true } })).map((c) => c.id));
+  const feeData = cells
+    .filter((c) => c.amount > 0 && classIds.has(c.classId) && nameToId.has(c.itemName.trim()))
+    .map((c) => ({ schoolId: user.schoolId, feeItemId: nameToId.get(c.itemName.trim())!, classId: c.classId, amount: Math.max(0, Math.round(c.amount)) }));
+  if (feeData.length) await prisma.classFee.createMany({ data: feeData, skipDuplicates: true });
+
   revalidatePath("/onboarding");
+  revalidatePath("/dashboard/settings");
   return { ok: true };
 }
 

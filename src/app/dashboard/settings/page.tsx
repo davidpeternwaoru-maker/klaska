@@ -2,19 +2,29 @@ import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { SectionTitle } from "@/components/ui/primitives";
 import { SettingsTabs } from "@/components/dashboard/SettingsTabs";
-import type { WizardBand } from "@/components/onboarding/types";
+import type { WizardBand, WizardFeeAmounts } from "@/components/onboarding/types";
 
 export default async function SettingsPage() {
   const user = await requireUser();
   const school = await prisma.school.findUnique({ where: { id: user.schoolId } });
   if (!school) return null;
 
-  const [bands, fees] = await Promise.all([
+  const [classes, bands, feeItems, classFees] = await Promise.all([
+    prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),
     prisma.gradingBand.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ category: "asc" }, { order: "asc" }] }),
     prisma.feeItem.findMany({ where: { schoolId: user.schoolId }, orderBy: { order: "asc" } }),
+    prisma.classFee.findMany({ where: { schoolId: user.schoolId } }),
   ]);
   const grading: Record<string, WizardBand[]> = {};
   for (const b of bands) (grading[b.category] = grading[b.category] || []).push({ label: b.label, minScore: b.minScore, maxScore: b.maxScore, remark: b.remark });
+
+  const feeIdToName = new Map(feeItems.map((f) => [f.id, f.name]));
+  const feeAmounts: WizardFeeAmounts = {};
+  for (const cf of classFees) {
+    const name = feeIdToName.get(cf.feeItemId);
+    if (!name) continue;
+    (feeAmounts[name] = feeAmounts[name] || {})[cf.classId] = cf.amount;
+  }
 
   return (
     <div className="mx-auto max-w-[900px]">
@@ -31,7 +41,9 @@ export default async function SettingsPage() {
           sections: school.sections,
         }}
         grading={grading}
-        fees={fees.map((f) => ({ name: f.name, amount: f.amount, appliesTo: f.appliesTo, mandatory: f.mandatory }))}
+        classes={classes.map((c) => ({ id: c.id, name: c.name, arm: c.arm }))}
+        feeItems={feeItems.map((f) => ({ name: f.name, mandatory: f.mandatory }))}
+        feeAmounts={feeAmounts}
       />
     </div>
   );

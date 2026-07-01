@@ -4,14 +4,13 @@ import { useState, useTransition } from "react";
 import { Card, Pill } from "@/components/ui/primitives";
 import { completeSetup } from "@/lib/actions/onboarding";
 import { SECTIONS } from "@/lib/school-setup";
-import type { WizardSchool, WizardClass, WizardFee, WizardStaff } from "../types";
+import type { WizardSchool, WizardClass, WizardStaff } from "../types";
 import { StepHead } from "../ui";
 
-export function ReviewStep({ school, classes, fees, staff }: { school: WizardSchool; classes: WizardClass[]; fees: WizardFee[]; staff: WizardStaff[] }) {
+export function ReviewStep({ school, classes, feeItemsCount, feeTotal, staff }: { school: WizardSchool; classes: WizardClass[]; feeItemsCount: number; feeTotal: number; staff: WizardStaff[] }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const sectionLabels = SECTIONS.filter((s) => school.sections.includes(s.key)).map((s) => s.label);
-  const feeTotal = fees.reduce((t, f) => t + (f.amount || 0), 0);
 
   const finish = () =>
     start(async () => {
@@ -57,7 +56,7 @@ export function ReviewStep({ school, classes, fees, staff }: { school: WizardSch
 
       <div className="mt-3">
         <Row k="Classes created" v={String(classes.length)} />
-        <Row k="Fee items" v={`${fees.length} · ₦${feeTotal.toLocaleString("en-NG")}/term`} />
+        <Row k="Fee types" v={`${feeItemsCount} · ₦${feeTotal.toLocaleString("en-NG")} across all classes`} />
         <Row k="Staff" v={String(staff.length)} />
         <Row k="Contact" v={school.email || school.phone || "—"} />
       </div>

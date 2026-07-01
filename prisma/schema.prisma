@@ -89,6 +89,7 @@ model Class {
 
   students   Student[]
   attendance Attendance[]
+  classFees  ClassFee[]
 
   // No two classes in the same school can share the same name + arm.
   @@unique([schoolId, name, arm])
@@ -201,18 +202,33 @@ model GradingBand {
   @@index([schoolId, category])
 }
 
-// The school's fee structure — named charges. The Fees module (invoices &
-// payments) will build on these. Amounts are whole naira for now.
+// A fee TYPE the school charges (e.g. Tuition, Development levy). The actual
+// amount lives per-class in ClassFee, so fees can vary by class/department.
 model FeeItem {
   id        String   @id @default(cuid())
   school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   schoolId  String
   name      String
-  amount    Int
-  appliesTo String? // a section key or "ALL"
   mandatory Boolean  @default(true)
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
+  classFees ClassFee[]
+
   @@index([schoolId])
+}
+
+// The amount charged for a fee item in a specific class (whole naira).
+model ClassFee {
+  id        String  @id @default(cuid())
+  schoolId  String
+  feeItem   FeeItem @relation(fields: [feeItemId], references: [id], onDelete: Cascade)
+  feeItemId String
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId   String
+  amount    Int
+
+  @@unique([feeItemId, classId])
+  @@index([schoolId])
+  @@index([classId])
 }

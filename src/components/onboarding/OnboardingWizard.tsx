@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { KLogo } from "@/components/ui/Icon";
-import type { WizardSchool, WizardClass, WizardBand, WizardFee, WizardStaff } from "./types";
+import type { WizardSchool, WizardClass, WizardBand, WizardFeeItem, WizardFeeAmounts, WizardStaff } from "./types";
 import { ProfileStep } from "./steps/ProfileStep";
 import { StructureStep } from "./steps/StructureStep";
 import { ClassesStep } from "./steps/ClassesStep";
@@ -23,20 +23,27 @@ export function OnboardingWizard({
   school,
   classes,
   grading,
-  fees,
+  feeItems,
+  feeAmounts,
   staff,
 }: {
   ownerName: string;
   school: WizardSchool;
   classes: WizardClass[];
   grading: Record<string, WizardBand[]>;
-  fees: WizardFee[];
+  feeItems: WizardFeeItem[];
+  feeAmounts: WizardFeeAmounts;
   staff: WizardStaff[];
 }) {
   const [step, setStep] = useState(0);
-  // The wizard owns `sections` so later steps always get the fresh value the
-  // moment it's chosen — no waiting on a server refetch (which caused a crash).
+  // The wizard owns state that later steps depend on, so each step always gets
+  // the fresh value the moment it changes — no waiting on a server refetch.
   const [sections, setSections] = useState<string[]>(school.sections);
+  const [classList, setClassList] = useState<WizardClass[]>(classes);
+  const [feeSummary, setFeeSummary] = useState(() => ({
+    items: feeItems.length,
+    total: Object.values(feeAmounts).reduce((s, byClass) => s + Object.values(byClass).reduce((a, b) => a + b, 0), 0),
+  }));
   const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1));
   const back = () => setStep((s) => Math.max(0, s - 1));
 
@@ -77,11 +84,11 @@ export function OnboardingWizard({
         <div className="k-rise">
           {step === 0 && <ProfileStep school={school} onDone={next} />}
           {step === 1 && <StructureStep sections={sections} onSaved={setSections} onDone={next} />}
-          {step === 2 && <ClassesStep key={sections.join(",")} sections={sections} existing={classes} onDone={next} />}
+          {step === 2 && <ClassesStep key={sections.join(",")} sections={sections} existing={classList} onCreated={setClassList} onDone={next} />}
           {step === 3 && <GradingStep key={sections.join(",")} sections={sections} existing={grading} onDone={next} />}
-          {step === 4 && <FeesStep key={sections.join(",")} sections={sections} existing={fees} onDone={next} />}
+          {step === 4 && <FeesStep key={classList.map((c) => c.id).join(",")} classes={classList} items={feeItems} amounts={feeAmounts} onSaved={setFeeSummary} onDone={next} />}
           {step === 5 && <StaffStep staff={staff} onDone={next} />}
-          {step === 6 && <ReviewStep school={{ ...school, sections }} classes={classes} fees={fees} staff={staff} />}
+          {step === 6 && <ReviewStep school={{ ...school, sections }} classes={classList} feeItemsCount={feeSummary.items} feeTotal={feeSummary.total} staff={staff} />}
         </div>
 
         {/* back control */}

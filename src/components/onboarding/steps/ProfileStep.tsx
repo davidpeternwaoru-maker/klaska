@@ -63,7 +63,7 @@ export function ProfileStep({ school, onDone, ctaLabel }: { school: WizardSchool
 
         <div className="grid flex-1 grid-cols-2 gap-3">
           <Field label="School name *">
-            <input className={inputCls} value={form.name} onChange={(e) => upd("name", e.target.value)} />
+            <input className={inputCls} value={form.name} onChange={(e) => upd("name", e.target.value)} placeholder="Your school's full name" />
           </Field>
           <Field label="Short name">
             <input className={inputCls} value={form.shortName} onChange={(e) => upd("shortName", e.target.value)} placeholder="e.g. GIS" />

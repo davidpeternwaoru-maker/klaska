@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-import type { WizardBand } from "@/components/onboarding/types";
+import type { WizardBand, WizardFeeAmounts } from "@/components/onboarding/types";
 
 export const metadata = { title: "Set up your school · Klaska" };
 
@@ -10,16 +10,26 @@ export default async function OnboardingPage() {
   const school = await prisma.school.findUnique({ where: { id: user.schoolId } });
   if (!school) return null;
 
-  const [classes, bands, fees, staff] = await Promise.all([
+  const [classes, bands, feeItems, classFees, staff] = await Promise.all([
     prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),
     prisma.gradingBand.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ category: "asc" }, { order: "asc" }] }),
     prisma.feeItem.findMany({ where: { schoolId: user.schoolId }, orderBy: { order: "asc" } }),
+    prisma.classFee.findMany({ where: { schoolId: user.schoolId } }),
     prisma.staff.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "asc" } }),
   ]);
 
   const grading: Record<string, WizardBand[]> = {};
   for (const b of bands) {
     (grading[b.category] = grading[b.category] || []).push({ label: b.label, minScore: b.minScore, maxScore: b.maxScore, remark: b.remark });
+  }
+
+  // fee amounts keyed by item name -> classId -> amount
+  const feeIdToName = new Map(feeItems.map((f) => [f.id, f.name]));
+  const feeAmounts: WizardFeeAmounts = {};
+  for (const cf of classFees) {
+    const name = feeIdToName.get(cf.feeItemId);
+    if (!name) continue;
+    (feeAmounts[name] = feeAmounts[name] || {})[cf.classId] = cf.amount;
   }
 
   return (
@@ -37,7 +47,8 @@ export default async function OnboardingPage() {
       }}
       classes={classes.map((c) => ({ id: c.id, name: c.name, arm: c.arm }))}
       grading={grading}
-      fees={fees.map((f) => ({ name: f.name, amount: f.amount, appliesTo: f.appliesTo, mandatory: f.mandatory }))}
+      feeItems={feeItems.map((f) => ({ name: f.name, mandatory: f.mandatory }))}
+      feeAmounts={feeAmounts}
       staff={staff.map((s) => ({ id: s.id, name: s.name, email: s.email, role: s.role }))}
     />
   );

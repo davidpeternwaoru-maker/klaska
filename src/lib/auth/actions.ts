@@ -14,24 +14,23 @@ export type AuthState = { error?: string };
 
 /** Create a brand-new school and its first user (the OWNER), then log them in. */
 export async function signupSchool(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const schoolName = String(formData.get("schoolName") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim() || null; // their role at the school
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
-  if (!schoolName || !name || !email) return { error: "Please fill in every field." };
+  if (!name || !email) return { error: "Please fill in every field." };
   if (password.length < 6) return { error: "Password must be at least 6 characters." };
 
   const existing = await prisma.staff.findUnique({ where: { email } });
   if (existing) return { error: "An account with that email already exists." };
 
-  // Create the School and its main administrator (OWNER) together. Prisma's
-  // nested write does both inserts in one transaction — if either fails,
-  // neither is saved. The OWNER has full power over this school.
+  // Create the person's account first, together with an (as-yet unnamed) school
+  // they own. They'll name and configure the school in the setup wizard next.
+  // The nested write is one transaction — if either insert fails, neither saves.
   const school = await prisma.school.create({
     data: {
-      name: schoolName,
+      name: "", // set in the wizard's first step
       staff: {
         create: { name, title, email, passwordHash: await hashPassword(password), role: "OWNER" },
       },

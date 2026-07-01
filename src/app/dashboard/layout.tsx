@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   if (school && !school.setupCompletedAt) redirect("/onboarding");
 
   return (
-    <DashShell schoolName={school?.name ?? "Your school"} userName={user.name} role={user.role} logoUrl={school?.logoUrl ?? null}>
+    <DashShell schoolName={school?.name || "Your school"} userName={user.name} role={user.role} logoUrl={school?.logoUrl ?? null}>
       {children}
     </DashShell>
   );

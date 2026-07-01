@@ -7,7 +7,7 @@ import { saveSections } from "@/lib/actions/onboarding";
 import { SECTIONS } from "@/lib/school-setup";
 import { StepHead, StepFooter } from "../ui";
 
-export function StructureStep({ sections, onDone, ctaLabel }: { sections: string[]; onDone: () => void; ctaLabel?: string }) {
+export function StructureStep({ sections, onSaved, onDone, ctaLabel }: { sections: string[]; onSaved?: (s: string[]) => void; onDone: () => void; ctaLabel?: string }) {
   const [picked, setPicked] = useState<string[]>(sections);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -18,8 +18,10 @@ export function StructureStep({ sections, onDone, ctaLabel }: { sections: string
     start(async () => {
       setError(null);
       const res = await saveSections(picked);
-      if (res.ok) onDone();
-      else setError(res.error ?? "Could not save.");
+      if (res.ok) {
+        onSaved?.(picked); // hand the fresh sections to the wizard immediately
+        onDone();
+      } else setError(res.error ?? "Could not save.");
     });
 
   return (

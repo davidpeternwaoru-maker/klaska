@@ -16,6 +16,7 @@ export type AuthState = { error?: string };
 export async function signupSchool(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const schoolName = String(formData.get("schoolName") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim() || null; // their role at the school
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
@@ -25,13 +26,14 @@ export async function signupSchool(_prev: AuthState, formData: FormData): Promis
   const existing = await prisma.staff.findUnique({ where: { email } });
   if (existing) return { error: "An account with that email already exists." };
 
-  // Create the School and its OWNER staff member together. Prisma's nested
-  // write does both inserts in one transaction — if either fails, neither is saved.
+  // Create the School and its main administrator (OWNER) together. Prisma's
+  // nested write does both inserts in one transaction — if either fails,
+  // neither is saved. The OWNER has full power over this school.
   const school = await prisma.school.create({
     data: {
       name: schoolName,
       staff: {
-        create: { name, email, passwordHash: await hashPassword(password), role: "OWNER" },
+        create: { name, title, email, passwordHash: await hashPassword(password), role: "OWNER" },
       },
     },
     include: { staff: true },

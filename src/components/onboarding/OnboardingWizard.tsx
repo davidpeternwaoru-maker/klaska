@@ -34,6 +34,9 @@ export function OnboardingWizard({
   staff: WizardStaff[];
 }) {
   const [step, setStep] = useState(0);
+  // The wizard owns `sections` so later steps always get the fresh value the
+  // moment it's chosen — no waiting on a server refetch (which caused a crash).
+  const [sections, setSections] = useState<string[]>(school.sections);
   const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1));
   const back = () => setStep((s) => Math.max(0, s - 1));
 
@@ -73,12 +76,12 @@ export function OnboardingWizard({
         {/* active step */}
         <div className="k-rise">
           {step === 0 && <ProfileStep school={school} onDone={next} />}
-          {step === 1 && <StructureStep sections={school.sections} onDone={next} />}
-          {step === 2 && <ClassesStep sections={school.sections} existing={classes} onDone={next} />}
-          {step === 3 && <GradingStep sections={school.sections} existing={grading} onDone={next} />}
-          {step === 4 && <FeesStep sections={school.sections} existing={fees} onDone={next} />}
+          {step === 1 && <StructureStep sections={sections} onSaved={setSections} onDone={next} />}
+          {step === 2 && <ClassesStep key={sections.join(",")} sections={sections} existing={classes} onDone={next} />}
+          {step === 3 && <GradingStep key={sections.join(",")} sections={sections} existing={grading} onDone={next} />}
+          {step === 4 && <FeesStep key={sections.join(",")} sections={sections} existing={fees} onDone={next} />}
           {step === 5 && <StaffStep staff={staff} onDone={next} />}
-          {step === 6 && <ReviewStep school={school} classes={classes} fees={fees} staff={staff} />}
+          {step === 6 && <ReviewStep school={{ ...school, sections }} classes={classes} fees={fees} staff={staff} />}
         </div>
 
         {/* back control */}

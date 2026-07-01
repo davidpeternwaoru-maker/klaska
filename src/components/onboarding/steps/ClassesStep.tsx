@@ -19,7 +19,8 @@ export function ClassesStep({ sections, existing, onDone, ctaLabel }: { sections
   });
   const [pending, start] = useTransition();
 
-  const setRow = (lv: string, patch: Partial<Row>) => setRows((r) => ({ ...r, [lv]: { ...r[lv], ...patch } }));
+  const setRow = (lv: string, patch: Partial<Row>) =>
+    setRows((r) => ({ ...r, [lv]: { ...(r[lv] ?? { create: true, arms: 1 }), ...patch } }));
 
   const save = () =>
     start(async () => {
@@ -42,7 +43,7 @@ export function ClassesStep({ sections, existing, onDone, ctaLabel }: { sections
               <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-4">{g.label}</div>
               <div className="flex flex-col divide-y divide-border rounded-[12px] border border-border">
                 {g.levels.map((lv) => {
-                  const row = rows[lv];
+                  const row = rows[lv] ?? { create: !existingNames.has(lv), arms: 1 };
                   const exists = existingNames.has(lv);
                   return (
                     <div key={lv} className="flex items-center gap-3 px-3 py-2.5">

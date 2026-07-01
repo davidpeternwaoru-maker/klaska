@@ -7,7 +7,7 @@ import { TopBar } from "./TopBar";
 // The real, database-backed app (auth screens + /dashboard) brings its own
 // chrome, so we render those routes bare. Everything else still gets the
 // original prototype shell (rail + sub-panel + top bar).
-const BARE_PREFIXES = ["/login", "/signup", "/dashboard"];
+const BARE_PREFIXES = ["/login", "/signup", "/dashboard", "/onboarding"];
 
 /** Full-width product shell: rail + sub-panel + top bar + scrolling content. */
 export function AppShell({ children }: { children: React.ReactNode }) {

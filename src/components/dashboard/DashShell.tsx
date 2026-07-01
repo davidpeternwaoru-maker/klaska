@@ -17,17 +17,20 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard/classes", label: "Classes", icon: "layers" },
   { href: "/dashboard/attendance", label: "Attendance", icon: "attendance" },
   { href: "/dashboard/results", label: "Results", icon: "reports" },
+  { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ];
 
 export function DashShell({
   schoolName,
   userName,
   role,
+  logoUrl,
   children,
 }: {
   schoolName: string;
   userName: string;
   role: string;
+  logoUrl?: string | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -36,9 +39,14 @@ export function DashShell({
       {/* sidebar */}
       <aside className="flex w-[228px] flex-none flex-col border-r border-border bg-card p-3">
         <div className="flex items-center gap-2.5 px-2 py-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-forest">
-            <KLogo size={22} white />
-          </span>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={schoolName} className="h-9 w-9 flex-none rounded-[11px] object-contain" />
+          ) : (
+            <span className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-forest">
+              <KLogo size={22} white />
+            </span>
+          )}
           <div className="min-w-0">
             <div className="truncate text-[13.5px] font-semibold leading-tight text-ink">{schoolName}</div>
             <div className="text-[11px] text-ink-4">Klaska</div>

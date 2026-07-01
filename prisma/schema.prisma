@@ -34,18 +34,25 @@ model School {
   id        String   @id @default(cuid())
   name      String
   shortName String?
+  motto     String?
   address   String?
   email     String?
   phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  logoUrl   String?  @db.Text // small logo stored inline as a data URL
+  // Which sections this school runs: EARLY | PRIMARY | JUNIOR | SENIOR.
+  sections         String[]  @default([])
+  setupCompletedAt DateTime? // null until the onboarding wizard is finished
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  staff      Staff[]
-  classes    Class[]
-  students   Student[]
-  attendance Attendance[]
-  subjects   Subject[]
-  results    Result[]
+  staff        Staff[]
+  classes      Class[]
+  students     Student[]
+  attendance   Attendance[]
+  subjects     Subject[]
+  results      Result[]
+  gradingBands GradingBand[]
+  feeItems     FeeItem[]
 }
 
 // A staff member. This is also the *login account* — email + password live here.
@@ -175,4 +182,37 @@ model Result {
   @@unique([studentId, subjectId]) // one score per subject (per term, later)
   @@index([schoolId])
   @@index([subjectId, classId])
+}
+
+// The school's grading scale. Bands are grouped by category so a school can
+// grade Early Years differently from Secondary. Seeded with Nigerian defaults
+// during onboarding, then fully editable.
+model GradingBand {
+  id       String @id @default(cuid())
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId String
+  category String // SECONDARY | PRIMARY | EARLY
+  label    String // e.g. "A1"
+  minScore Int
+  maxScore Int
+  remark   String // e.g. "Excellent"
+  order    Int    @default(0)
+
+  @@index([schoolId, category])
+}
+
+// The school's fee structure — named charges. The Fees module (invoices &
+// payments) will build on these. Amounts are whole naira for now.
+model FeeItem {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  name      String
+  amount    Int
+  appliesTo String? // a section key or "ALL"
+  mandatory Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([schoolId])
 }

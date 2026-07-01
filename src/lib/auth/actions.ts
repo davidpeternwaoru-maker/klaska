@@ -39,7 +39,7 @@ export async function signupSchool(_prev: AuthState, formData: FormData): Promis
 
   const owner = school.staff[0];
   await createSession({ staffId: owner.id, schoolId: school.id, role: "OWNER", name: owner.name, email: owner.email });
-  redirect("/dashboard");
+  redirect("/onboarding"); // new schools go through setup first
 }
 
 /** Log an existing staff member in. */

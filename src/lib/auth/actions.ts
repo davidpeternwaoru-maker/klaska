@@ -56,7 +56,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   }
 
   await createSession({ staffId: staff.id, schoolId: staff.schoolId, role: staff.role, name: staff.name, email: staff.email });
-  redirect("/dashboard");
+  redirect("/"); // the full, polished app
 }
 
 export async function logout() {

@@ -131,10 +131,10 @@ export async function saveFeeStructure(
   return { ok: true };
 }
 
-/** Mark the wizard finished, then go to the dashboard. */
+/** Mark the wizard finished, then open the main app. */
 export async function completeSetup(): Promise<void> {
   const user = await requireUser();
   await prisma.school.update({ where: { id: user.schoolId }, data: { setupCompletedAt: new Date() } });
-  revalidatePath("/dashboard");
-  redirect("/dashboard");
+  revalidatePath("/");
+  redirect("/"); // the full, polished app
 }

@@ -42,6 +42,11 @@ model School {
   // Which sections this school runs: EARLY | PRIMARY | JUNIOR | SENIOR.
   sections         String[]  @default([])
   setupCompletedAt DateTime? // null until the onboarding wizard is finished
+  // Nigerian academic calendar — auto-detected at setup, editable in Settings.
+  session   String? // e.g. "2025/2026"
+  term      String? // FIRST | SECOND | THIRD
+  termStart DateTime?
+  termEnd   DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

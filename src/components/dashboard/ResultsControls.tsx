@@ -8,14 +8,16 @@ export function ResultsControls({
   subjects,
   classId,
   subjectId,
+  basePath = "/dashboard/results",
 }: {
   classes: { value: string; label: string }[];
   subjects: { value: string; label: string }[];
   classId: string;
   subjectId: string;
+  basePath?: string;
 }) {
   const router = useRouter();
-  const go = (c: string, s: string) => router.push(`/dashboard/results?classId=${encodeURIComponent(c)}&subjectId=${encodeURIComponent(s)}`);
+  const go = (c: string, s: string) => router.push(`${basePath}?classId=${encodeURIComponent(c)}&subjectId=${encodeURIComponent(s)}`);
   const ctrl = "h-9 rounded-[9px] border border-border bg-secondary px-2.5 text-[13px] text-ink outline-none focus:border-forest-line focus:bg-card";
 
   return (

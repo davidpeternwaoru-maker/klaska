@@ -59,6 +59,8 @@ export async function createStudent(_prev: ActionState, formData: FormData): Pro
     return { error: "Could not save — that admission number may already be in use." };
   }
   revalidatePath("/dashboard/students");
+  revalidatePath("/people/students");
+  revalidatePath("/");
   revalidatePath("/dashboard");
   return { ok: true };
 }
@@ -88,6 +90,8 @@ export async function updateStudent(_prev: ActionState, formData: FormData): Pro
   });
   if (res.count === 0) return { error: "Student not found." };
   revalidatePath("/dashboard/students");
+  revalidatePath("/people/students");
+  revalidatePath("/");
   return { ok: true };
 }
 
@@ -96,6 +100,8 @@ export async function deleteStudent(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (id) await prisma.student.deleteMany({ where: { id, schoolId: user.schoolId } });
   revalidatePath("/dashboard/students");
+  revalidatePath("/people/students");
+  revalidatePath("/");
   revalidatePath("/dashboard");
 }
 
@@ -183,6 +189,8 @@ export async function importStudents(rows: ImportRow[], createMissingClasses: bo
     return { created: 0, classesCreated, skipped, error: "Saving failed — check for duplicate admission numbers in the file." };
   }
   revalidatePath("/dashboard/students");
+  revalidatePath("/people/students");
+  revalidatePath("/");
   revalidatePath("/dashboard");
   return { created, classesCreated, skipped };
 }

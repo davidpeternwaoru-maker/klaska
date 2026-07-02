@@ -38,6 +38,7 @@ export async function createStaff(_prev: ActionState, formData: FormData): Promi
     data: { schoolId: user.schoolId, name, email, title, phone, role, passwordHash: await hashPassword(password) },
   });
   revalidatePath("/dashboard/staff");
+  revalidatePath("/people/staff");
   revalidatePath("/dashboard");
   return { ok: true };
 }
@@ -49,6 +50,7 @@ export async function deleteStaff(formData: FormData): Promise<void> {
   // Never let someone delete their own account (would lock them out).
   if (id && id !== user.staffId) await prisma.staff.deleteMany({ where: { id, schoolId: user.schoolId } });
   revalidatePath("/dashboard/staff");
+  revalidatePath("/people/staff");
 }
 
 /** Owner/Bursar sets a new password for a staff member (no email needed). */
@@ -67,5 +69,6 @@ export async function resetStaffPassword(_prev: ActionState, formData: FormData)
   });
   if (res.count === 0) return { error: "Staff member not found." };
   revalidatePath("/dashboard/staff");
+  revalidatePath("/people/staff");
   return { ok: true };
 }

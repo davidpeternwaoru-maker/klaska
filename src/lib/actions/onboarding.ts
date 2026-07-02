@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { denyUnless, CAN_MANAGE_SCHOOL } from "@/lib/auth/guard";
+import { detectTerm } from "@/lib/terms";
 
 export type SetupState = { ok?: boolean; error?: string };
 
@@ -70,6 +71,7 @@ export async function createClassesBulk(items: { name: string; arms: string[] }[
   const classes = await prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] });
   revalidatePath("/onboarding");
   revalidatePath("/dashboard/classes");
+  revalidatePath("/people/classes");
   return { ok: true, classes: classes.map((c) => ({ id: c.id, name: c.name, arm: c.arm })) };
 }
 
@@ -128,13 +130,43 @@ export async function saveFeeStructure(
 
   revalidatePath("/onboarding");
   revalidatePath("/dashboard/settings");
+  revalidatePath("/finance/fees");
+  return { ok: true };
+}
+
+/** Update the academic session/term (Settings → Session & term). */
+export async function saveTermInfo(data: { session: string; term: string; termStart?: string; termEnd?: string }): Promise<SetupState> {
+  const user = await requireUser();
+  const denied = denyUnless(user, ...CAN_MANAGE_SCHOOL);
+  if (denied) return denied;
+  if (!/^\d{4}\/\d{4}$/.test(data.session.trim())) return { error: "Session should look like 2025/2026." };
+  if (!["FIRST", "SECOND", "THIRD"].includes(data.term)) return { error: "Pick a term." };
+  const start = data.termStart ? new Date(data.termStart) : null;
+  const end = data.termEnd ? new Date(data.termEnd) : null;
+  if (start && end && start >= end) return { error: "Term start must be before term end." };
+  await prisma.school.update({
+    where: { id: user.schoolId },
+    data: { session: data.session.trim(), term: data.term, termStart: start, termEnd: end },
+  });
+  revalidatePath("/");
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/finance/fees");
   return { ok: true };
 }
 
 /** Mark the wizard finished, then open the main app. */
 export async function completeSetup(): Promise<void> {
   const user = await requireUser();
-  await prisma.school.update({ where: { id: user.schoolId }, data: { setupCompletedAt: new Date() } });
+  const school = await prisma.school.findUnique({ where: { id: user.schoolId }, select: { session: true } });
+  // Auto-detect the current Nigerian session/term if the school hasn't set one.
+  const t = detectTerm();
+  await prisma.school.update({
+    where: { id: user.schoolId },
+    data: {
+      setupCompletedAt: new Date(),
+      ...(school?.session ? {} : { session: t.session, term: t.term, termStart: t.termStart, termEnd: t.termEnd }),
+    },
+  });
   revalidatePath("/");
   redirect("/"); // the full, polished app
 }

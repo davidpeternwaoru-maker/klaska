@@ -9,7 +9,16 @@ import { TopBar } from "./TopBar";
 // original prototype shell (rail + sub-panel + top bar).
 const BARE_PREFIXES = ["/login", "/signup", "/dashboard", "/onboarding"];
 
-export type ShellSchool = { name: string; shortName: string; logoUrl: string | null } | null;
+export type ShellSchool = {
+  name: string;
+  shortName: string;
+  logoUrl: string | null;
+  session: string;
+  termLabel: string;
+  weeksDone: number;
+  weeksTotal: number;
+  termEnds: string;
+} | null;
 
 /** Full-width product shell: rail + sub-panel + top bar + scrolling content. */
 export function AppShell({ school, children }: { school?: ShellSchool; children: React.ReactNode }) {

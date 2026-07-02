@@ -21,6 +21,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Academics",
     icon: "reports",
     items: [
+      { id: "results", label: "Results Entry", icon: "edit", href: "/academics/results" },
       { id: "reports", label: "Report Cards & Results", icon: "reports", href: "/academics/reports" },
       { id: "ai", label: "AI Outcomes Engine", icon: "ai", href: "/academics/ai", accent: true },
     ],
@@ -30,6 +31,7 @@ export const NAV_GROUPS: NavGroup[] = [
     icon: "students",
     items: [
       { id: "students", label: "Students", icon: "students", href: "/people/students" },
+      { id: "classes", label: "Classes", icon: "layers", href: "/people/classes" },
       { id: "attendance", label: "Attendance", icon: "attendance", href: "/people/attendance" },
       { id: "promotions", label: "Promotions", icon: "arrowU", href: "/people/promotions" },
       { id: "staff", label: "Staff & Payroll", icon: "badge", href: "/people/staff" },
@@ -53,6 +55,6 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Settings",
     icon: "settings",
-    items: [{ id: "settings", label: "School Settings", icon: "settings", href: "/settings" }],
+    items: [{ id: "settings", label: "School Settings", icon: "settings", href: "/dashboard/settings" }],
   },
 ];

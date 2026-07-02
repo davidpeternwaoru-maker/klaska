@@ -10,14 +10,16 @@ export function AttendanceControls({
   classes,
   classId,
   date,
+  basePath = "/dashboard/attendance",
 }: {
   classes: { value: string; label: string }[];
   classId: string;
   date: string;
+  basePath?: string;
 }) {
   const router = useRouter();
   const go = (nextClass: string, nextDate: string) =>
-    router.push(`/dashboard/attendance?classId=${encodeURIComponent(nextClass)}&date=${nextDate}`);
+    router.push(`${basePath}?classId=${encodeURIComponent(nextClass)}&date=${nextDate}`);
 
   const ctrl = "h-9 rounded-[9px] border border-border bg-secondary px-2.5 text-[13px] text-ink outline-none focus:border-forest-line focus:bg-card";
 

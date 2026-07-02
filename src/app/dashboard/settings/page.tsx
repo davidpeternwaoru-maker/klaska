@@ -44,6 +44,12 @@ export default async function SettingsPage() {
         classes={classes.map((c) => ({ id: c.id, name: c.name, arm: c.arm }))}
         feeItems={feeItems.map((f) => ({ name: f.name, mandatory: f.mandatory }))}
         feeAmounts={feeAmounts}
+        termInfo={{
+          session: school.session,
+          term: school.term,
+          termStart: school.termStart ? school.termStart.toISOString().slice(0, 10) : null,
+          termEnd: school.termEnd ? school.termEnd.toISOString().slice(0, 10) : null,
+        }}
       />
     </div>
   );

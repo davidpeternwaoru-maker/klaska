@@ -27,6 +27,7 @@ export async function createClass(_prev: ActionState, formData: FormData): Promi
     return { error: `Class "${name}${arm ? " " + arm : ""}" already exists.` };
   }
   revalidatePath("/dashboard/classes");
+  revalidatePath("/people/classes");
   revalidatePath("/dashboard");
   return { ok: true };
 }
@@ -38,5 +39,6 @@ export async function deleteClass(formData: FormData): Promise<void> {
   // automatically (onDelete: SetNull in the schema).
   if (id) await prisma.class.deleteMany({ where: { id, schoolId: user.schoolId } });
   revalidatePath("/dashboard/classes");
+  revalidatePath("/people/classes");
   revalidatePath("/dashboard");
 }

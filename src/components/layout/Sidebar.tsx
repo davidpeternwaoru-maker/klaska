@@ -7,7 +7,7 @@ import { NAV_GROUPS, type NavGroup } from "@/lib/nav";
 import { Icon, KLogo } from "@/components/ui/Icon";
 import { SCHOOL } from "@/data/overview";
 
-export function Sidebar({ school }: { school: { name: string; shortName: string; logoUrl: string | null } | null }) {
+export function Sidebar({ school }: { school: import("./AppShell").ShellSchool }) {
   const pathname = usePathname();
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -110,7 +110,7 @@ export function Sidebar({ school }: { school: { name: string; shortName: string;
             )}
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13px] font-semibold leading-tight text-ink">{displayName}</span>
-              <span className="block text-[11px] text-ink-4">{SCHOOL.term}</span>
+              <span className="block text-[11px] text-ink-4">{school ? `${school.termLabel} · ${school.session}` : SCHOOL.term}</span>
             </span>
             <Icon name="chevD" size={14} style={{ color: "var(--color-ink-4)" }} />
           </button>
@@ -158,21 +158,23 @@ export function Sidebar({ school }: { school: { name: string; shortName: string;
             </nav>
           </div>
 
-          {/* term progress */}
+          {/* term progress — real school calendar when logged in */}
           <div className="mt-auto rounded-[12px] border border-border bg-secondary/60 p-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[12px] font-medium text-ink-3">Term progress</span>
+              <span className="text-[12px] font-medium text-ink-3">{school ? school.termLabel : "Term progress"}</span>
               <span className="text-[12px] font-semibold text-ink">
-                {SCHOOL.termWeeksDone}/{SCHOOL.termWeeksTotal} wks
+                {school ? school.weeksDone : SCHOOL.termWeeksDone}/{school ? school.weeksTotal : SCHOOL.termWeeksTotal} wks
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-border">
               <div
                 className="h-full rounded-full bg-amber transition-[width] duration-500"
-                style={{ width: `${(SCHOOL.termWeeksDone / SCHOOL.termWeeksTotal) * 100}%` }}
+                style={{
+                  width: `${((school ? school.weeksDone : SCHOOL.termWeeksDone) / (school ? school.weeksTotal : SCHOOL.termWeeksTotal)) * 100}%`,
+                }}
               />
             </div>
-            <div className="mt-2 text-[11px] text-ink-4">Ends {SCHOOL.termEnds}</div>
+            <div className="mt-2 text-[11px] text-ink-4">Ends {school ? school.termEnds : SCHOOL.termEnds}</div>
           </div>
         </div>
       </aside>

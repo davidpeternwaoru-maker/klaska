@@ -24,6 +24,7 @@ export async function createSubject(_prev: ActionState, formData: FormData): Pro
   }
   revalidatePath("/dashboard/subjects");
   revalidatePath("/dashboard/results");
+  revalidatePath("/academics/results");
   return { ok: true };
 }
 
@@ -33,6 +34,7 @@ export async function deleteSubject(formData: FormData): Promise<void> {
   if (id) await prisma.subject.deleteMany({ where: { id, schoolId: user.schoolId } });
   revalidatePath("/dashboard/subjects");
   revalidatePath("/dashboard/results");
+  revalidatePath("/academics/results");
 }
 
 /* ----- results ----- */
@@ -91,5 +93,6 @@ export async function saveResults(
     return { error: "Could not save results. Please try again." };
   }
   revalidatePath("/dashboard/results");
+  revalidatePath("/academics/results");
   return { ok: true, saved: ops.length };
 }

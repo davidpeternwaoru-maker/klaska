@@ -48,6 +48,8 @@ export async function saveAttendance(
     return { error: "Could not save attendance. Please try again." };
   }
   revalidatePath("/dashboard/attendance");
+  revalidatePath("/people/attendance");
+  revalidatePath("/");
   revalidatePath("/dashboard");
   return { ok: true, saved: ops.length };
 }

@@ -58,8 +58,10 @@ const check = (label, b) => { console.log(ok(b), label); if (!b) fails++; };
   check("RESULTS: student + saved A1 grade", r.status === 200 && /Bola/.test(r.html) && /A1/.test(r.html));
   r = await get("/finance/fees");
   check("FEES: SSS 1 Science tuition 250,000", r.status === 200 && /Science/.test(r.html) && /250,000/.test(r.html));
-  r = await get("/dashboard/settings");
+  r = await get("/settings");
   check("SETTINGS: session & term tab present", r.status === 200 && /Session &amp; term/.test(r.html));
+  r = await get("/settings/notifications");
+  check("NOTIFICATIONS: compose renders", r.status === 200 && /Send a message/.test(r.html));
   const anon = await fetch("http://localhost:3000/", { redirect: "manual" });
   check("ANON home -> /login", anon.status === 307 && (anon.headers.get("location") || "").includes("/login"));
 

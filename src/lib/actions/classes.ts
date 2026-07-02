@@ -32,6 +32,26 @@ export async function createClass(_prev: ActionState, formData: FormData): Promi
   return { ok: true };
 }
 
+/** Rename a class (level name and/or arm, e.g. "JSS 1" + "Emerald"). */
+export async function updateClass(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const arm = String(formData.get("arm") ?? "").trim() || null;
+  if (!id || !name) return { error: "Class name is required." };
+  try {
+    const res = await prisma.class.updateMany({ where: { id, schoolId: user.schoolId }, data: { name, arm } });
+    if (res.count === 0) return { error: "Class not found." };
+  } catch {
+    return { error: `"${name}${arm ? " " + arm : ""}" already exists.` };
+  }
+  revalidatePath("/dashboard/classes");
+  revalidatePath("/people/classes");
+  revalidatePath("/settings");
+  revalidatePath("/finance/fees");
+  return { ok: true };
+}
+
 export async function deleteClass(formData: FormData): Promise<void> {
   const user = await requireUser();
   const id = String(formData.get("id") ?? "");

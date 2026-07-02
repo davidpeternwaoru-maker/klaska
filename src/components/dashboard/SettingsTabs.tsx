@@ -10,6 +10,9 @@ import { StructureStep } from "@/components/onboarding/steps/StructureStep";
 import { GradingStep } from "@/components/onboarding/steps/GradingStep";
 import { FeesStep } from "@/components/onboarding/steps/FeesStep";
 import { TermSettings } from "./TermSettings";
+import { SettingsClasses, type SettingsClassRow } from "./SettingsClasses";
+import { FeePrefs } from "./FeePrefs";
+import { StaffManager, type StaffRow } from "./StaffManager";
 import type { WizardSchool, WizardClass, WizardBand, WizardFeeItem, WizardFeeAmounts } from "@/components/onboarding/types";
 
 export type TermInfo = { session: string | null; term: string | null; termStart: string | null; termEnd: string | null };
@@ -18,15 +21,21 @@ export function SettingsTabs({
   school,
   grading,
   classes,
+  classRows,
+  staff,
   feeItems,
   feeAmounts,
+  feePrefs,
   termInfo,
 }: {
   school: WizardSchool;
   grading: Record<string, WizardBand[]>;
   classes: WizardClass[];
+  classRows: SettingsClassRow[];
+  staff: StaffRow[];
   feeItems: WizardFeeItem[];
   feeAmounts: WizardFeeAmounts;
+  feePrefs: { feeCollection: string; autoFeeReminders: boolean };
   termInfo: TermInfo;
 }) {
   const [tab, setTab] = useState("profile");
@@ -46,8 +55,10 @@ export function SettingsTabs({
             { value: "profile", label: "Profile & branding" },
             { value: "term", label: "Session & term" },
             { value: "sections", label: "Sections" },
+            { value: "classes", label: "Classes & arms" },
             { value: "grading", label: "Grading" },
             { value: "fees", label: "Fees" },
+            { value: "access", label: "Roles & access" },
           ]}
         />
         {saved && <span className="text-[12.5px] font-medium text-green">Saved ✓</span>}
@@ -56,8 +67,15 @@ export function SettingsTabs({
         {tab === "profile" && <ProfileStep school={school} onDone={done} ctaLabel="Save changes" />}
         {tab === "term" && <TermSettings initial={termInfo} onDone={done} />}
         {tab === "sections" && <StructureStep sections={school.sections} onDone={done} ctaLabel="Save changes" />}
+        {tab === "classes" && <SettingsClasses classes={classRows} />}
         {tab === "grading" && <GradingStep sections={school.sections} existing={grading} onDone={done} ctaLabel="Save changes" />}
-        {tab === "fees" && <FeesStep classes={classes} items={feeItems} amounts={feeAmounts} onDone={done} ctaLabel="Save changes" />}
+        {tab === "fees" && (
+          <>
+            <FeePrefs initial={feePrefs} />
+            <FeesStep classes={classes} items={feeItems} amounts={feeAmounts} onDone={done} ctaLabel="Save changes" />
+          </>
+        )}
+        {tab === "access" && <StaffManager staff={staff} />}
       </div>
     </div>
   );

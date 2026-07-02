@@ -47,6 +47,9 @@ model School {
   term      String? // FIRST | SECOND | THIRD
   termStart DateTime?
   termEnd   DateTime?
+  // Fee collection preferences. Virtual (bank/virtual-account) tracking lands later.
+  feeCollection    String  @default("MANUAL") // MANUAL | VIRTUAL
+  autoFeeReminders Boolean @default(false)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -58,6 +61,7 @@ model School {
   results      Result[]
   gradingBands GradingBand[]
   feeItems     FeeItem[]
+  notices      Notice[]
 }
 
 // A staff member. This is also the *login account* — email + password live here.
@@ -221,6 +225,21 @@ model FeeItem {
   classFees ClassFee[]
 
   @@index([schoolId])
+}
+
+// A message from the school admin to staff or parents. Stored as the school's
+// message log; SMS/WhatsApp/email delivery channels connect in a later phase.
+model Notice {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  audience  String // ALL_STAFF | TEACHERS | BURSARS | PARENTS
+  title     String?
+  body      String   @db.Text
+  sentBy    String // staff name at send time
+  createdAt DateTime @default(now())
+
+  @@index([schoolId, createdAt])
 }
 
 // The amount charged for a fee item in a specific class (whole naira).

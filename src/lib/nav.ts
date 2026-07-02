@@ -55,6 +55,9 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Settings",
     icon: "settings",
-    items: [{ id: "settings", label: "School Settings", icon: "settings", href: "/settings" }],
+    items: [
+      { id: "settings", label: "School Settings", icon: "settings", href: "/settings" },
+      { id: "notifications", label: "Notifications", icon: "bell", href: "/settings/notifications" },
+    ],
   },
 ];

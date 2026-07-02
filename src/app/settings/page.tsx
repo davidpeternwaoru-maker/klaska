@@ -12,11 +12,16 @@ export default async function Page() {
   const school = await prisma.school.findUnique({ where: { id: user.schoolId } });
   if (!school) return null;
 
-  const [classes, bands, feeItems, classFees] = await Promise.all([
-    prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),
+  const [classes, bands, feeItems, classFees, staff] = await Promise.all([
+    prisma.class.findMany({
+      where: { schoolId: user.schoolId },
+      include: { _count: { select: { students: true } } },
+      orderBy: [{ name: "asc" }, { arm: "asc" }],
+    }),
     prisma.gradingBand.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ category: "asc" }, { order: "asc" }] }),
     prisma.feeItem.findMany({ where: { schoolId: user.schoolId }, orderBy: { order: "asc" } }),
     prisma.classFee.findMany({ where: { schoolId: user.schoolId } }),
+    prisma.staff.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "asc" } }),
   ]);
 
   const grading: Record<string, WizardBand[]> = {};
@@ -46,8 +51,11 @@ export default async function Page() {
         }}
         grading={grading}
         classes={classes.map((c) => ({ id: c.id, name: c.name, arm: c.arm }))}
+        classRows={classes.map((c) => ({ id: c.id, name: c.name, arm: c.arm, studentCount: c._count.students }))}
+        staff={staff.map((s) => ({ id: s.id, name: s.name, email: s.email, role: s.role, title: s.title, phone: s.phone, isSelf: s.id === user.staffId }))}
         feeItems={feeItems.map((f) => ({ name: f.name, mandatory: f.mandatory }))}
         feeAmounts={feeAmounts}
+        feePrefs={{ feeCollection: school.feeCollection, autoFeeReminders: school.autoFeeReminders }}
         termInfo={{
           session: school.session,
           term: school.term,

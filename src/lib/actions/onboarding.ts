@@ -130,6 +130,7 @@ export async function saveFeeStructure(
 
   revalidatePath("/onboarding");
   revalidatePath("/dashboard/settings");
+  revalidatePath("/settings");
   revalidatePath("/finance/fees");
   return { ok: true };
 }
@@ -150,6 +151,7 @@ export async function saveTermInfo(data: { session: string; term: string; termSt
   });
   revalidatePath("/");
   revalidatePath("/dashboard/settings");
+  revalidatePath("/settings");
   revalidatePath("/finance/fees");
   return { ok: true };
 }

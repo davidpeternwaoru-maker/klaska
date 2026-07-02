@@ -35,7 +35,7 @@ export function RealOverview({
     { href: "/dashboard/students/import", label: "Import students", icon: "download" },
     { href: "/dashboard/attendance", label: "Take attendance", icon: "attendance" },
     { href: "/dashboard/results", label: "Enter results", icon: "reports" },
-    { href: "/dashboard/settings", label: "School settings", icon: "settings" },
+    { href: "/settings", label: "School settings", icon: "settings" },
   ];
 
   return (

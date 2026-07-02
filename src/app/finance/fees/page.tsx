@@ -28,7 +28,7 @@ export default async function Page() {
         title="Fees"
         sub="Your fee structure — the amount charged per class, per term."
         right={
-          <Link href="/dashboard/settings" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+          <Link href="/settings" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
             <Icon name="edit" size={15} /> Edit fees
           </Link>
         }
@@ -37,7 +37,7 @@ export default async function Page() {
       {feeItems.length === 0 || classes.length === 0 ? (
         <Card className="text-center text-[13px] text-ink-4">
           No fee structure yet.{" "}
-          <Link href="/dashboard/settings" className="font-medium text-forest hover:underline">Set up your fees</Link> (or in the onboarding wizard).
+          <Link href="/settings" className="font-medium text-forest hover:underline">Set up your fees</Link> (or in the onboarding wizard).
         </Card>
       ) : (
         <Card pad={0} className="overflow-hidden">

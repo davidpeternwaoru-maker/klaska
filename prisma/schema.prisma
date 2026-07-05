@@ -67,6 +67,7 @@ model School {
   notices      Notice[]
   invoices     Invoice[]
   payments     Payment[]
+  expenses     Expense[]
 }
 
 // A staff member. This is also the *login account* — email + password live here.
@@ -286,6 +287,20 @@ model Payment {
 
   @@index([schoolId, paidAt])
   @@index([invoiceId])
+}
+
+// Money going out — completes Flow 4 (revenue − costs = profit, live).
+model Expense {
+  id         String   @id @default(cuid())
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId   String
+  category   String // SALARIES | RENT | UTILITIES | SUPPLIES | TRANSPORT | MAINTENANCE | OTHER
+  description String?
+  amount     Int
+  spentAt    DateTime @default(now())
+  recordedBy String?
+
+  @@index([schoolId, spentAt])
 }
 
 // A message from the school admin to staff or parents. Stored as the school's

@@ -82,6 +82,13 @@ const check = (label, b) => { console.log(ok(b), label); if (!b) fails++; };
   r = await get(`/academics/report-cards?classId=${jss1.id}`);
   check("REPORT CARDS: ranked list + 1st position + average", r.status === 200 && /Bola/.test(r.html) && /1st/.test(r.html) && /76(<!-- -->)?%/.test(r.html));
 
+  // ---- Layer 4: analysis + financial system on real data ----
+  r = await get("/academics/analysis");
+  check("ANALYSIS: class avg + best student + subject", r.status === 200 && /JSS 1 A/.test(r.html) && /Bola/.test(r.html) && /Mathematics/.test(r.html));
+  await prisma.expense.create({ data: { schoolId: school.id, category: "SALARIES", description: "May salaries", amount: 30000 } });
+  r = await get("/finance/system");
+  check("FINANCIAL SYSTEM: collected, expenses, net", r.status === 200 && /50,000/.test(r.html) && /30,000/.test(r.html) && /20,000/.test(r.html));
+
   // ---- Permission matrix: a TEACHER sees only their class, never money ----
   const tEmail = `teach+${Date.now()}@klaska.test`;
   const teacher = await prisma.staff.create({ data: { schoolId: school.id, name: "Tunde Teacher", email: tEmail, passwordHash: "x", role: "TEACHER" } });

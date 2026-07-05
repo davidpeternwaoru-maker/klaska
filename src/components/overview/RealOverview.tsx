@@ -29,12 +29,16 @@ export function RealOverview({
   counts: { students: number; staff: number; classes: number; present: number };
   recent: Recent[];
 }) {
+  const greet = (() => {
+    const parts = userName.trim().split(/s+/);
+    return /^(mr|mrs|ms|miss|dr|chief|engr|prof).?$/i.test(parts[0]) && parts[1] ? parts.slice(0, 2).join(" ") : parts[0];
+  })();
   const presentPct = counts.students ? Math.round((counts.present / counts.students) * 100) : 0;
 
   const quick: { href: string; label: string; icon: IconName }[] = [
-    { href: "/dashboard/students/import", label: "Import students", icon: "download" },
-    { href: "/dashboard/attendance", label: "Take attendance", icon: "attendance" },
-    { href: "/dashboard/results", label: "Enter results", icon: "reports" },
+    { href: "/people/students/import", label: "Import students", icon: "download" },
+    { href: "/people/attendance", label: "Take attendance", icon: "attendance" },
+    { href: "/academics/results", label: "Enter results", icon: "reports" },
     { href: "/settings", label: "School settings", icon: "settings" },
   ];
 
@@ -42,7 +46,7 @@ export function RealOverview({
     <div className="mx-auto max-w-[1320px]">
       <SectionTitle
         eyebrow="Overview"
-        title={`Welcome, ${userName.split(" ")[0]}`}
+        title={`Welcome, ${greet}`}
         sub={`Here's ${schoolName} today.`}
         right={
           <Link href="/people/students" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
@@ -69,7 +73,7 @@ export function RealOverview({
           {recent.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-5 pb-10 pt-4 text-center">
               <div className="text-[13px] text-ink-4">No students yet.</div>
-              <Link href="/dashboard/students/import" className="text-[13px] font-medium text-forest hover:underline">Import your student list →</Link>
+              <Link href="/people/students/import" className="text-[13px] font-medium text-forest hover:underline">Import your student list →</Link>
             </div>
           ) : (
             <div className="divide-y divide-border">

@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
-import { TopBar } from "./TopBar";
+import { TopBar, type TopBarUser } from "./TopBar";
 
 // The real, database-backed app (auth screens + /dashboard) brings its own
 // chrome, so we render those routes bare. Everything else still gets the
@@ -24,10 +24,12 @@ export type ShellSchool = {
 export function AppShell({
   school,
   role,
+  user,
   children,
 }: {
   school?: ShellSchool;
   role?: import("@/lib/auth/jwt").Role | null;
+  user?: TopBarUser;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -37,7 +39,7 @@ export function AppShell({
     <div className="flex h-screen overflow-hidden bg-background text-ink">
       <Sidebar school={school ?? null} role={role ?? null} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar />
+        <TopBar user={user ?? null} />
         <main className="flex-1 overflow-auto px-8 py-7">{children}</main>
       </div>
     </div>

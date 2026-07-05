@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { detectTerm, termProgress, TERM_LABEL, fmtShortDate, type TermKey } from "@/lib/terms";
+import { ROLE_LABEL } from "@/lib/auth/permissions";
 
 // Premium, modern type — Geist for UI text, Space Grotesk for display numerals.
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
@@ -60,7 +61,13 @@ export default async function RootLayout({
       className={cn("h-full", geist.variable, spaceGrotesk.variable, geistMono.variable, "font-sans")}
     >
       <body className="min-h-full">
-        <AppShell school={school} role={user?.role ?? null}>{children}</AppShell>
+        <AppShell
+          school={school}
+          role={user?.role ?? null}
+          user={user ? { name: user.name, roleLabel: ROLE_LABEL[user.role], schoolShort: school?.shortName ?? "" } : null}
+        >
+          {children}
+        </AppShell>
       </body>
     </html>
   );

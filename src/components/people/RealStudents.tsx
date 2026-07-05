@@ -57,10 +57,10 @@ export function RealStudents({ students, classes }: { students: Student[]; class
         sub="Your enrolled learners, live from your school's records."
         right={
           <>
-            <Link href="/dashboard/students/import" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <Link href="/people/students/import" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="download" size={15} style={{ transform: "rotate(180deg)" }} /> Import
             </Link>
-            <Link href="/dashboard/students" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+            <Link href="/people/students/manage" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
               <Icon name="plus" size={15} /> Add student
             </Link>
           </>
@@ -96,7 +96,7 @@ export function RealStudents({ students, classes }: { students: Student[]; class
           <div className="flex flex-col items-center gap-2 px-4 pb-10 pt-6 text-center">
             <div className="text-[13px] text-ink-4">{students.length === 0 ? "No students yet." : "No students match your filter."}</div>
             {students.length === 0 && (
-              <Link href="/dashboard/students/import" className="text-[13px] font-medium text-forest hover:underline">Import your student list →</Link>
+              <Link href="/people/students/import" className="text-[13px] font-medium text-forest hover:underline">Import your student list →</Link>
             )}
           </div>
         ) : (

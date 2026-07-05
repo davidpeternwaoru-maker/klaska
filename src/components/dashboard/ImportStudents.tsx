@@ -210,7 +210,7 @@ export function ImportStudents({ existingClasses }: { existingClasses: string[] 
             {result.classesCreated.length > 0 && <>Created {result.classesCreated.length} new class(es): {result.classesCreated.join(", ")}. </>}
             {result.skipped > 0 && <>{result.skipped} row(s) skipped (missing names). </>}
           </div>
-          <Link href="/dashboard/students" className="mt-3 inline-block text-[13px] font-medium text-forest hover:underline">
+          <Link href="/people/students" className="mt-3 inline-block text-[13px] font-medium text-forest hover:underline">
             View students →
           </Link>
         </Card>

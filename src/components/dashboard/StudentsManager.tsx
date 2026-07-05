@@ -149,7 +149,7 @@ export function StudentsManager({ students, classes }: { students: StudentRow[];
         {students.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-4 pb-9 pt-5 text-center">
             <div className="text-[13px] text-ink-4">No students yet.</div>
-            <Link href="/dashboard/students/import" className="text-[13px] font-medium text-forest hover:underline">
+            <Link href="/people/students/import" className="text-[13px] font-medium text-forest hover:underline">
               Import a list from a spreadsheet →
             </Link>
             <div className="text-[12px] text-ink-4">or add one with the form on the right.</div>

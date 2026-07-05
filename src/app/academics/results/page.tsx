@@ -47,7 +47,7 @@ export default async function Page({
         sub="Enter CA1, CA2 and Exam per student — totals and grades are worked out automatically."
         right={
           <>
-            <Link href="/dashboard/subjects" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <Link href="/academics/subjects" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               Manage subjects
             </Link>
             <Link href="/academics/report-cards" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
@@ -62,7 +62,7 @@ export default async function Page({
       ) : subjects.length === 0 ? (
         <Card className="text-center text-[13px] text-ink-4">
           No subjects yet.{" "}
-          <Link href="/dashboard/subjects" className="font-medium text-forest hover:underline">Add subjects</Link> to start entering results.
+          <Link href="/academics/subjects" className="font-medium text-forest hover:underline">Add subjects</Link> to start entering results.
         </Card>
       ) : (
         <>

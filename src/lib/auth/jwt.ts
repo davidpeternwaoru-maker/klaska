@@ -10,7 +10,7 @@
 
 import { SignJWT, jwtVerify } from "jose";
 
-export type Role = "OWNER" | "BURSAR" | "TEACHER";
+export type Role = "OWNER" | "HOS" | "BURSAR" | "HOD" | "TEACHER" | "ADMIN";
 
 /** What we store inside the session token (kept small — no secrets). */
 export type SessionUser = {

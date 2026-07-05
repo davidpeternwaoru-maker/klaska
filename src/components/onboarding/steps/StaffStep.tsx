@@ -36,8 +36,11 @@ export function StaffStep({ staff, onDone, ctaLabel = "Continue" }: { staff: Wiz
         <Field label="Role">
           <select name="role" defaultValue="TEACHER" className={inputCls}>
             <option value="TEACHER">Teacher</option>
-            <option value="BURSAR">Bursar</option>
-            <option value="OWNER">Owner</option>
+              <option value="HOS">Principal (HOS)</option>
+              <option value="BURSAR">Bursar</option>
+              <option value="HOD">Head of Department</option>
+              <option value="ADMIN">Admin Officer</option>
+              <option value="OWNER">Owner</option>
           </select>
         </Field>
         <Field label="Job title"><input name="title" placeholder="e.g. Maths Teacher" className={inputCls} /></Field>

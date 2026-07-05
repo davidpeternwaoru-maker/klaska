@@ -28,6 +28,18 @@ export async function createSubject(_prev: ActionState, formData: FormData): Pro
   return { ok: true };
 }
 
+/** Wizard: create many subjects at once (skips ones that already exist). */
+export async function createSubjectsBulk(names: string[]): Promise<ActionState> {
+  const user = await requireUser();
+  const clean = Array.from(new Set(names.map((n) => n.trim()).filter(Boolean)));
+  if (clean.length) {
+    await prisma.subject.createMany({ data: clean.map((name) => ({ schoolId: user.schoolId, name })), skipDuplicates: true });
+  }
+  revalidatePath("/dashboard/subjects");
+  revalidatePath("/academics/results");
+  return { ok: true };
+}
+
 export async function deleteSubject(formData: FormData): Promise<void> {
   const user = await requireUser();
   const id = String(formData.get("id") ?? "");
@@ -54,12 +66,19 @@ export async function saveResults(
   const user = await requireUser();
   if (!subjectId || !classId) return { error: "Pick a class and a subject first." };
 
-  const [subject, klass] = await Promise.all([
+  const [subject, klass, school] = await Promise.all([
     prisma.subject.findFirst({ where: { id: subjectId, schoolId: user.schoolId } }),
     prisma.class.findFirst({ where: { id: classId, schoolId: user.schoolId } }),
+    prisma.school.findUnique({ where: { id: user.schoolId }, select: { session: true, term: true } }),
   ]);
   if (!subject) return { error: "Subject not found." };
   if (!klass) return { error: "Class not found." };
+  // Teachers may only enter scores for their own class (Permission Matrix).
+  if (user.role === "TEACHER" && klass.teacherId !== user.staffId) {
+    return { error: "You can only enter results for your own class." };
+  }
+  const session = school?.session ?? null;
+  const term = school?.term ?? null;
 
   const valid = new Set(
     (await prisma.student.findMany({ where: { schoolId: user.schoolId, classId }, select: { id: true } })).map((s) => s.id),
@@ -80,8 +99,8 @@ export async function saveResults(
     .map((x) =>
       prisma.result.upsert({
         where: { studentId_subjectId: { studentId: x.e.studentId, subjectId } },
-        create: { schoolId: user.schoolId, studentId: x.e.studentId, subjectId, classId, ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, recordedBy: user.staffId },
-        update: { ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, classId, recordedBy: user.staffId },
+        create: { schoolId: user.schoolId, studentId: x.e.studentId, subjectId, classId, ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, session, term, recordedBy: user.staffId },
+        update: { ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, classId, session, term, recordedBy: user.staffId },
       }),
     );
 

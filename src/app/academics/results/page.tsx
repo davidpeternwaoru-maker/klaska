@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { classScope } from "@/lib/auth/scope";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { ResultsControls } from "@/components/dashboard/ResultsControls";
 import { ResultsGrid, type ExistingResult } from "@/components/dashboard/ResultsGrid";
@@ -16,7 +17,7 @@ export default async function Page({
   const sp = await searchParams;
 
   const [classes, subjects] = await Promise.all([
-    prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),
+    prisma.class.findMany({ where: classScope(user), orderBy: [{ name: "asc" }, { arm: "asc" }] }),
     prisma.subject.findMany({ where: { schoolId: user.schoolId }, orderBy: { name: "asc" } }),
   ]);
   const classId = sp.classId || classes[0]?.id || "";

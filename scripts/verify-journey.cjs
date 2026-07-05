@@ -62,6 +62,29 @@ const check = (label, b) => { console.log(ok(b), label); if (!b) fails++; };
   check("SETTINGS: session & term tab present", r.status === 200 && /Session &amp; term/.test(r.html));
   r = await get("/settings/notifications");
   check("NOTIFICATIONS: compose renders", r.status === 200 && /Send a message/.test(r.html));
+  // ---- Finance core: invoice + payment reflected on the money screen ----
+  const tuitionJss = await prisma.feeItem.create({ data: { schoolId: school.id, name: "Tuition JSS", order: 1 } });
+  await prisma.classFee.create({ data: { schoolId: school.id, feeItemId: tuitionJss.id, classId: jss1.id, amount: 120000 } });
+  const inv = await prisma.invoice.create({
+    data: { schoolId: school.id, studentId: s1.id, session: "2025/2026", term: "THIRD", total: 120000, lines: { create: [{ description: "Tuition", amount: 120000 }] } },
+  });
+  await prisma.payment.create({ data: { schoolId: school.id, studentId: s1.id, invoiceId: inv.id, amount: 50000, method: "TRANSFER", recordedBy: "Ada" } });
+  r = await get("/finance/fees");
+  check("FINANCE: invoice + part-payment + balance", r.status === 200 && /Part-paid/.test(r.html) && /120,000/.test(r.html) && /50,000/.test(r.html) && /70,000/.test(r.html));
+
+  // ---- Permission matrix: a TEACHER sees only their class, never money ----
+  const tEmail = `teach+${Date.now()}@klaska.test`;
+  const teacher = await prisma.staff.create({ data: { schoolId: school.id, name: "Tunde Teacher", email: tEmail, passwordHash: "x", role: "TEACHER" } });
+  await prisma.class.update({ where: { id: jss1.id }, data: { teacherId: teacher.id } });
+  const tTok = await new SignJWT({ staffId: teacher.id, schoolId: school.id, role: "TEACHER", name: teacher.name, email: tEmail })
+    .setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("7d").sign(key);
+  const T = { headers: { cookie: `klaska_session=${tTok}` }, redirect: "manual" };
+  let tr = await fetch("http://localhost:3000/finance/fees", T);
+  check("TEACHER: money page blocked (redirect)", tr.status === 307);
+  tr = await fetch("http://localhost:3000/people/attendance", T);
+  const th = await tr.text();
+  check("TEACHER: sees own class only (JSS 1, no Science)", tr.status === 200 && /JSS 1/.test(th) && !/SSS 1 Science/.test(th));
+
   const anon = await fetch("http://localhost:3000/", { redirect: "manual" });
   check("ANON home -> /login", anon.status === 307 && (anon.headers.get("location") || "").includes("/login"));
 

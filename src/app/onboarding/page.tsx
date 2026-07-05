@@ -10,12 +10,13 @@ export default async function OnboardingPage() {
   const school = await prisma.school.findUnique({ where: { id: user.schoolId } });
   if (!school) return null;
 
-  const [classes, bands, feeItems, classFees, staff] = await Promise.all([
+  const [classes, bands, feeItems, classFees, staff, subjects] = await Promise.all([
     prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),
     prisma.gradingBand.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ category: "asc" }, { order: "asc" }] }),
     prisma.feeItem.findMany({ where: { schoolId: user.schoolId }, orderBy: { order: "asc" } }),
     prisma.classFee.findMany({ where: { schoolId: user.schoolId } }),
     prisma.staff.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "asc" } }),
+    prisma.subject.findMany({ where: { schoolId: user.schoolId }, select: { name: true } }),
   ]);
 
   const grading: Record<string, WizardBand[]> = {};
@@ -46,6 +47,7 @@ export default async function OnboardingPage() {
         sections: school.sections,
       }}
       classes={classes.map((c) => ({ id: c.id, name: c.name, arm: c.arm }))}
+      subjects={subjects.map((s) => s.name)}
       grading={grading}
       feeItems={feeItems.map((f) => ({ name: f.name, mandatory: f.mandatory }))}
       feeAmounts={feeAmounts}

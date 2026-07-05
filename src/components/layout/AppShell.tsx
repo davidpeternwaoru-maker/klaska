@@ -21,13 +21,21 @@ export type ShellSchool = {
 } | null;
 
 /** Full-width product shell: rail + sub-panel + top bar + scrolling content. */
-export function AppShell({ school, children }: { school?: ShellSchool; children: React.ReactNode }) {
+export function AppShell({
+  school,
+  role,
+  children,
+}: {
+  school?: ShellSchool;
+  role?: import("@/lib/auth/jwt").Role | null;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   if (BARE_PREFIXES.some((p) => pathname.startsWith(p))) return <>{children}</>;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-ink">
-      <Sidebar school={school ?? null} />
+      <Sidebar school={school ?? null} role={role ?? null} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
         <main className="flex-1 overflow-auto px-8 py-7">{children}</main>

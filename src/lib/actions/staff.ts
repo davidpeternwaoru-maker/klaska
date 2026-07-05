@@ -13,7 +13,7 @@ import type { Role } from "@/lib/auth/jwt";
 
 export type ActionState = { error?: string; ok?: boolean };
 
-const ROLES: Role[] = ["OWNER", "BURSAR", "TEACHER"];
+const ROLES: Role[] = ["OWNER", "HOS", "BURSAR", "HOD", "TEACHER", "ADMIN"];
 
 export async function createStaff(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();

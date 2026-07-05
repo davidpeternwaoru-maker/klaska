@@ -22,11 +22,14 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// The three starting roles. Stored as a Postgres enum for safety.
+// The six v1 staff roles (Product Structure §2). Role decides the view.
 enum Role {
-  OWNER
-  BURSAR
-  TEACHER
+  OWNER // Proprietor — sees everything incl. money & settings
+  HOS // Principal / Head of School — runs academics
+  BURSAR // Accountant — runs the money
+  HOD // Head of Department — their department only
+  TEACHER // their assigned classes only; never sees money
+  ADMIN // Admin Officer — front desk: records, no money, no scores
 }
 
 // A school = one tenant/account. The first person to sign up becomes its OWNER.
@@ -62,6 +65,8 @@ model School {
   gradingBands GradingBand[]
   feeItems     FeeItem[]
   notices      Notice[]
+  invoices     Invoice[]
+  payments     Payment[]
 }
 
 // A staff member. This is also the *login account* — email + password live here.
@@ -124,6 +129,8 @@ model Student {
 
   attendance Attendance[]
   results    Result[]
+  invoices   Invoice[]
+  payments   Payment[]
 
   // Admission numbers are unique within a school (not globally).
   @@unique([schoolId, admissionNo])
@@ -143,6 +150,8 @@ model Attendance {
   classId    String?
   date       DateTime @db.Date // the school day (no time component)
   status     String // PRESENT | ABSENT | LATE | EXCUSED
+  session    String? // e.g. "2025/2026" — snapshot of the school calendar
+  term       String? // FIRST | SECOND | THIRD
   recordedBy String? // staffId of whoever marked it
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -185,6 +194,8 @@ model Result {
   exam       Int?
   total      Int?
   grade      String?
+  session    String? // calendar snapshot — scores belong to a term (§6)
+  term       String?
   recordedBy String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -225,6 +236,56 @@ model FeeItem {
   classFees ClassFee[]
 
   @@index([schoolId])
+}
+
+// ---------- Finance core (Flow 3 & 4): invoices, payments, balances ----------
+
+// A student's bill for one term. Total is the sum of its lines (snapshotted
+// from the class's fee structure at generation time, so later fee edits never
+// rewrite old bills). Balance = total − payments; status is computed.
+model Invoice {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  session   String // "2025/2026"
+  term      String // FIRST | SECOND | THIRD
+  total     Int // naira
+  createdAt DateTime @default(now())
+
+  lines    InvoiceLine[]
+  payments Payment[]
+
+  @@unique([studentId, session, term]) // one bill per student per term
+  @@index([schoolId, session, term])
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId   String
+  description String // fee item name at generation time
+  amount      Int
+}
+
+// Money received (manual mode: bursar records it; virtual mode auto-matches later).
+model Payment {
+  id         String   @id @default(cuid())
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId   String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  invoice    Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  invoiceId  String?
+  amount     Int
+  method     String // CASH | TRANSFER | POS
+  reference  String?
+  paidAt     DateTime @default(now())
+  recordedBy String? // staff name
+
+  @@index([schoolId, paidAt])
+  @@index([invoiceId])
 }
 
 // A message from the school admin to staff or parents. Stored as the school's

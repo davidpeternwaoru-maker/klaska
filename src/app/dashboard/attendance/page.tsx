@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { classScope } from "@/lib/auth/scope";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { AttendanceControls } from "@/components/dashboard/AttendanceControls";
 import { AttendanceMarker } from "@/components/dashboard/AttendanceMarker";
@@ -18,7 +19,7 @@ export default async function AttendancePage({
   const date = sp.date || today;
 
   const classes = await prisma.class.findMany({
-    where: { schoolId: user.schoolId },
+    where: classScope(user),
     orderBy: [{ name: "asc" }, { arm: "asc" }],
   });
   const classId = sp.classId || classes[0]?.id || "";

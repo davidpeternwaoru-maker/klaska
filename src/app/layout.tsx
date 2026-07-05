@@ -60,7 +60,7 @@ export default async function RootLayout({
       className={cn("h-full", geist.variable, spaceGrotesk.variable, geistMono.variable, "font-sans")}
     >
       <body className="min-h-full">
-        <AppShell school={school}>{children}</AppShell>
+        <AppShell school={school} role={user?.role ?? null}>{children}</AppShell>
       </body>
     </html>
   );

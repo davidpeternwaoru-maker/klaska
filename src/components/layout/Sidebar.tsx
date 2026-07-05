@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { NAV_GROUPS, type NavGroup } from "@/lib/nav";
+import { navForRole, type NavGroup } from "@/lib/nav";
+import type { Role } from "@/lib/auth/jwt";
 import { Icon, KLogo } from "@/components/ui/Icon";
 import { SCHOOL } from "@/data/overview";
 
-export function Sidebar({ school }: { school: import("./AppShell").ShellSchool }) {
+export function Sidebar({ school, role }: { school: import("./AppShell").ShellSchool; role: Role | null }) {
+  const GROUPS = navForRole(role);
   const pathname = usePathname();
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -19,17 +21,17 @@ export function Sidebar({ school }: { school: import("./AppShell").ShellSchool }
   // Which group the current route belongs to (drives the rail highlight even
   // when the panel is collapsed).
   const routeGroup = useMemo<NavGroup>(() => {
-    const exact = NAV_GROUPS.find((g) => g.items.some((i) => i.href === pathname));
+    const exact = GROUPS.find((g) => g.items.some((i) => i.href === pathname));
     if (exact) return exact;
-    const prefix = NAV_GROUPS.find((g) => g.items.some((i) => i.href !== "/" && pathname.startsWith(i.href)));
-    return prefix ?? NAV_GROUPS[0];
+    const prefix = GROUPS.find((g) => g.items.some((i) => i.href !== "/" && pathname.startsWith(i.href)));
+    return prefix ?? GROUPS[0];
   }, [pathname]);
 
   // The sub-panel is COLLAPSED by default. `openGroup` is the one sliding out.
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const open = openGroup !== null;
   // Keep showing a group's items while the panel animates closed (no flicker).
-  const panelGroup = NAV_GROUPS.find((g) => g.label === openGroup) ?? routeGroup;
+  const panelGroup = GROUPS.find((g) => g.label === openGroup) ?? routeGroup;
 
   // Click-away (and Escape) closes the panel. Content stays interactive.
   useEffect(() => {
@@ -71,7 +73,7 @@ export function Sidebar({ school }: { school: import("./AppShell").ShellSchool }
         </div>
 
         <nav className="flex w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto">
-          {NAV_GROUPS.map((g) => (
+          {GROUPS.map((g) => (
             <RailIcon
               key={g.label}
               group={g}

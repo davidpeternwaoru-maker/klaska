@@ -13,7 +13,7 @@ export type StaffRow = {
   id: string;
   name: string;
   email: string;
-  role: "OWNER" | "BURSAR" | "TEACHER";
+  role: "OWNER" | "HOS" | "BURSAR" | "HOD" | "TEACHER" | "ADMIN";
   title: string | null;
   phone: string | null;
   isSelf: boolean;
@@ -22,7 +22,22 @@ export type StaffRow = {
 const input =
   "h-9 w-full rounded-[9px] border border-border bg-secondary px-2.5 text-[13px] text-ink outline-none focus:border-forest-line focus:bg-card";
 
-const roleTone: Record<StaffRow["role"], "forest" | "amber" | "neutral"> = { OWNER: "forest", BURSAR: "amber", TEACHER: "neutral" };
+const roleTone: Record<StaffRow["role"], "forest" | "amber" | "neutral" | "blue"> = {
+  OWNER: "forest",
+  HOS: "blue",
+  BURSAR: "amber",
+  HOD: "blue",
+  TEACHER: "neutral",
+  ADMIN: "neutral",
+};
+const roleLabel: Record<StaffRow["role"], string> = {
+  OWNER: "owner",
+  HOS: "principal",
+  BURSAR: "bursar",
+  HOD: "HOD",
+  TEACHER: "teacher",
+  ADMIN: "admin officer",
+};
 
 function AddForm() {
   const [state, action, pending] = useActionState<ActionState, FormData>(createStaff, {});
@@ -48,7 +63,10 @@ function AddForm() {
             <span className="mb-1 block text-[11.5px] font-medium text-ink-3">Role</span>
             <select name="role" defaultValue="TEACHER" className={input}>
               <option value="TEACHER">Teacher</option>
+              <option value="HOS">Principal (HOS)</option>
               <option value="BURSAR">Bursar</option>
+              <option value="HOD">Head of Department</option>
+              <option value="ADMIN">Admin Officer</option>
               <option value="OWNER">Owner</option>
             </select>
           </label>
@@ -145,7 +163,7 @@ export function StaffManager({ staff }: { staff: StaffRow[] }) {
                   </td>
                   <td className="px-4 py-2.5 text-ink-3">{s.email}</td>
                   <td className="px-4 py-2.5">
-                    <Pill tone={roleTone[s.role]}>{s.role.toLowerCase()}</Pill>
+                    <Pill tone={roleTone[s.role]}>{roleLabel[s.role]}</Pill>
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1">

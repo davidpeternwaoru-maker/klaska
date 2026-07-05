@@ -11,17 +11,19 @@ import type { WizardSchool, WizardClass, WizardBand, WizardFeeItem, WizardFeeAmo
 import { ProfileStep } from "./steps/ProfileStep";
 import { StructureStep } from "./steps/StructureStep";
 import { ClassesStep } from "./steps/ClassesStep";
+import { SubjectsStep } from "./steps/SubjectsStep";
 import { GradingStep } from "./steps/GradingStep";
 import { FeesStep } from "./steps/FeesStep";
 import { StaffStep } from "./steps/StaffStep";
 import { ReviewStep } from "./steps/ReviewStep";
 
-const STEPS = ["Profile", "Structure", "Classes", "Grading", "Fees", "Staff", "Review"];
+const STEPS = ["Profile", "Structure", "Classes", "Subjects", "Grading", "Fees", "Staff", "Review"];
 
 export function OnboardingWizard({
   ownerName,
   school,
   classes,
+  subjects,
   grading,
   feeItems,
   feeAmounts,
@@ -30,6 +32,7 @@ export function OnboardingWizard({
   ownerName: string;
   school: WizardSchool;
   classes: WizardClass[];
+  subjects: string[];
   grading: Record<string, WizardBand[]>;
   feeItems: WizardFeeItem[];
   feeAmounts: WizardFeeAmounts;
@@ -85,10 +88,11 @@ export function OnboardingWizard({
           {step === 0 && <ProfileStep school={school} onDone={next} />}
           {step === 1 && <StructureStep sections={sections} onSaved={setSections} onDone={next} />}
           {step === 2 && <ClassesStep key={sections.join(",")} sections={sections} existing={classList} onCreated={setClassList} onDone={next} />}
-          {step === 3 && <GradingStep key={sections.join(",")} sections={sections} existing={grading} onDone={next} />}
-          {step === 4 && <FeesStep key={classList.map((c) => c.id).join(",")} classes={classList} items={feeItems} amounts={feeAmounts} onSaved={setFeeSummary} onDone={next} />}
-          {step === 5 && <StaffStep staff={staff} onDone={next} />}
-          {step === 6 && <ReviewStep school={{ ...school, sections }} classes={classList} feeItemsCount={feeSummary.items} feeTotal={feeSummary.total} staff={staff} />}
+          {step === 3 && <SubjectsStep existing={subjects} onDone={next} />}
+          {step === 4 && <GradingStep key={sections.join(",")} sections={sections} existing={grading} onDone={next} />}
+          {step === 5 && <FeesStep key={classList.map((c) => c.id).join(",")} classes={classList} items={feeItems} amounts={feeAmounts} onSaved={setFeeSummary} onDone={next} />}
+          {step === 6 && <StaffStep staff={staff} onDone={next} />}
+          {step === 7 && <ReviewStep school={{ ...school, sections }} classes={classList} feeItemsCount={feeSummary.items} feeTotal={feeSummary.total} staff={staff} />}
         </div>
 
         {/* back control */}

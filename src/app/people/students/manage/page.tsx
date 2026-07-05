@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
+import { canManageStudents } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db";
 import { SectionTitle } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
@@ -14,6 +16,7 @@ function classLabel(c: { name: string; arm: string | null }) {
 // Add / edit / remove students — inside the main Klaska shell.
 export default async function Page() {
   const user = await requireUser();
+  if (!canManageStudents(user.role)) redirect("/people/students");
   const [students, classes] = await Promise.all([
     prisma.student.findMany({ where: { schoolId: user.schoolId }, include: { class: true }, orderBy: { createdAt: "desc" } }),
     prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),

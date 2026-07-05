@@ -17,11 +17,13 @@ export function AttendanceMarker({
   date,
   students,
   existing,
+  readOnly = false,
 }: {
   classId: string;
   date: string;
   students: Student[];
   existing: Record<string, string>;
+  readOnly?: boolean;
 }) {
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>(() =>
     Object.fromEntries(students.map((s) => [s.id, (existing[s.id] as AttendanceStatus) ?? "PRESENT"])),
@@ -68,12 +70,13 @@ export function AttendanceMarker({
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={allPresent} className="h-9 rounded-[9px] border border-border px-3 text-[12.5px] font-medium text-ink-2 hover:bg-secondary">
+          {readOnly && <Pill tone="neutral">View only — your role sees attendance but doesn&apos;t mark it</Pill>}
+          {!readOnly && <button onClick={allPresent} className="h-9 rounded-[9px] border border-border px-3 text-[12.5px] font-medium text-ink-2 hover:bg-secondary">
             Mark all present
-          </button>
-          <button onClick={save} disabled={pending} className="h-9 rounded-[9px] bg-forest px-4 text-[13px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+          </button>}
+          {!readOnly && <button onClick={save} disabled={pending} className="h-9 rounded-[9px] bg-forest px-4 text-[13px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
             {pending ? "Saving…" : "Save attendance"}
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -103,6 +106,7 @@ export function AttendanceMarker({
                       return (
                         <button
                           key={st}
+                          disabled={readOnly}
                           onClick={() => set(s.id, st)}
                           title={m.label}
                           className="flex h-7 w-7 items-center justify-center rounded-[7px] text-[12px] font-bold transition"

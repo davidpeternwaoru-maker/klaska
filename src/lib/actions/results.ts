@@ -8,12 +8,14 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { gradeFor, CA1_MAX, CA2_MAX, EXAM_MAX, type SaveResultsResult } from "@/lib/results";
+import { canEnterScores, canManageSubjects } from "@/lib/auth/permissions";
 
 export type ActionState = { error?: string; ok?: boolean };
 
 /* ----- subjects ----- */
 export async function createSubject(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  if (!canManageSubjects(user.role)) return { error: "Only the owner or principal manages subjects." };
   const name = String(formData.get("name") ?? "").trim();
   const code = String(formData.get("code") ?? "").trim() || null;
   if (!name) return { error: "Subject name is required." };
@@ -42,6 +44,7 @@ export async function createSubjectsBulk(names: string[]): Promise<ActionState> 
 
 export async function deleteSubject(formData: FormData): Promise<void> {
   const user = await requireUser();
+  if (!canManageSubjects(user.role)) return;
   const id = String(formData.get("id") ?? "");
   if (id) await prisma.subject.deleteMany({ where: { id, schoolId: user.schoolId } });
   revalidatePath("/dashboard/subjects");
@@ -64,6 +67,8 @@ export async function saveResults(
   entries: { studentId: string; ca1?: unknown; ca2?: unknown; exam?: unknown }[],
 ): Promise<SaveResultsResult> {
   const user = await requireUser();
+  // Matrix: Owner VIEWS scores; HOS full, teachers own class, HOD dept.
+  if (!canEnterScores(user.role)) return { error: "Your role can view scores but not enter them." };
   if (!subjectId || !classId) return { error: "Pick a class and a subject first." };
 
   const [subject, klass, school] = await Promise.all([

@@ -23,11 +23,15 @@ export function RealOverview({
   userName,
   counts,
   recent,
+  money = null,
+  variant = "full",
 }: {
   schoolName: string;
   userName: string;
   counts: { students: number; staff: number; classes: number; present: number };
   recent: Recent[];
+  money?: { collected: number; outstanding: number } | null;
+  variant?: "full" | "academic" | "basic";
 }) {
   const greet = (() => {
     const parts = userName.trim().split(/s+/);
@@ -35,12 +39,28 @@ export function RealOverview({
   })();
   const presentPct = counts.students ? Math.round((counts.present / counts.students) * 100) : 0;
 
-  const quick: { href: string; label: string; icon: IconName }[] = [
-    { href: "/people/students/import", label: "Import students", icon: "download" },
-    { href: "/people/attendance", label: "Take attendance", icon: "attendance" },
-    { href: "/academics/results", label: "Enter results", icon: "reports" },
-    { href: "/settings", label: "School settings", icon: "settings" },
-  ];
+  // Quick actions differ per role (Matrix: Owner full, HOS/HOD academic, Admin basic).
+  const quick: { href: string; label: string; icon: IconName }[] =
+    variant === "academic"
+      ? [
+          { href: "/people/attendance", label: "Take attendance", icon: "attendance" },
+          { href: "/academics/results", label: "Enter results", icon: "edit" },
+          { href: "/academics/report-cards", label: "Report cards", icon: "reports" },
+          { href: "/academics/analysis", label: "Report analysis", icon: "trend" },
+        ]
+      : variant === "basic"
+        ? [
+            { href: "/people/students/import", label: "Import students", icon: "download" },
+            { href: "/people/students/manage", label: "Add a student", icon: "plus" },
+            { href: "/people/students", label: "View students", icon: "students" },
+            { href: "/people/attendance", label: "View attendance", icon: "attendance" },
+          ]
+        : [
+            { href: "/people/students/import", label: "Import students", icon: "download" },
+            { href: "/people/attendance", label: "Take attendance", icon: "attendance" },
+            { href: "/academics/results", label: "Enter results", icon: "reports" },
+            { href: "/settings", label: "School settings", icon: "settings" },
+          ];
 
   return (
     <div className="mx-auto max-w-[1320px]">
@@ -62,6 +82,13 @@ export function RealOverview({
         <KPI label="Classes" value={String(counts.classes)} delta="set up" sub="" icon="layers" />
         <KPI label="Present today" value={`${presentPct}%`} delta={`${counts.present}/${counts.students}`} deltaTone="green" sub="" icon="attendance" />
       </div>
+
+      {money && (
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <KPI label="Fees collected (term)" value={"₦" + money.collected.toLocaleString("en-NG")} delta="real payments" deltaTone="green" sub="" icon="fees" />
+          <KPI label="Outstanding" value={"₦" + money.outstanding.toLocaleString("en-NG")} delta="to collect" deltaTone="red" sub="" icon="wallet" />
+        </div>
+      )}
 
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* recent enrolments */}

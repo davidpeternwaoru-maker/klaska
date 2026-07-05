@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { denyUnless, CAN_MANAGE_SCHOOL } from "@/lib/auth/guard";
 import { detectTerm } from "@/lib/terms";
+import { canEditAcademicSettings, canEditFeeStructure, canManageClasses } from "@/lib/auth/permissions";
 
 export type SetupState = { ok?: boolean; error?: string };
 
@@ -62,6 +63,7 @@ export type ClassLite = { id: string; name: string; arm: string | null };
  *  Returns the school's full class list so the wizard's later steps stay fresh. */
 export async function createClassesBulk(items: { name: string; arms: string[] }[]): Promise<SetupState & { classes: ClassLite[] }> {
   const user = await requireUser();
+  if (!canManageClasses(user.role)) return { error: "Only the owner or principal manages classes.", classes: [] };
   const data: { schoolId: string; name: string; arm: string | null }[] = [];
   for (const it of items) {
     const arms = it.arms.length ? it.arms : [""];
@@ -80,8 +82,7 @@ export async function saveGrading(
   bands: { label: string; minScore: number; maxScore: number; remark: string }[],
 ): Promise<SetupState> {
   const user = await requireUser();
-  const denied = denyUnless(user, ...CAN_MANAGE_SCHOOL);
-  if (denied) return denied;
+  if (!canEditAcademicSettings(user.role)) return { error: "Only the owner or principal edits grading." };
   const clean = bands.filter((b) => b.label.trim());
   await prisma.$transaction([
     prisma.gradingBand.deleteMany({ where: { schoolId: user.schoolId, category } }),
@@ -108,8 +109,7 @@ export async function saveFeeStructure(
   cells: { itemName: string; classId: string; amount: number }[],
 ): Promise<SetupState> {
   const user = await requireUser();
-  const denied = denyUnless(user, ...CAN_MANAGE_SCHOOL);
-  if (denied) return denied;
+  if (!canEditFeeStructure(user.role)) return { error: "Only the owner or bursar edits the fee structure." };
 
   const cleanItems = items.filter((i) => i.name.trim());
   // Replace the existing structure (deleting fee items cascades their amounts).
@@ -138,8 +138,7 @@ export async function saveFeeStructure(
 /** Update the academic session/term (Settings → Session & term). */
 export async function saveTermInfo(data: { session: string; term: string; termStart?: string; termEnd?: string }): Promise<SetupState> {
   const user = await requireUser();
-  const denied = denyUnless(user, ...CAN_MANAGE_SCHOOL);
-  if (denied) return denied;
+  if (!canEditAcademicSettings(user.role)) return { error: "Only the owner or principal edits the term." };
   if (!/^\d{4}\/\d{4}$/.test(data.session.trim())) return { error: "Session should look like 2025/2026." };
   if (!["FIRST", "SECOND", "THIRD"].includes(data.term)) return { error: "Pick a term." };
   const start = data.termStart ? new Date(data.termStart) : null;

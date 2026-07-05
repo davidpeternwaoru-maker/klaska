@@ -34,7 +34,7 @@ function CountCard({ label, value, sub, icon }: { label: string; value: number; 
   );
 }
 
-export function RealStudents({ students, classes }: { students: Student[]; classes: ClassOpt[] }) {
+export function RealStudents({ students, classes, canManage = true }: { students: Student[]; classes: ClassOpt[]; canManage?: boolean }) {
   const [q, setQ] = useState("");
   const [classId, setClassId] = useState("all");
 
@@ -56,14 +56,14 @@ export function RealStudents({ students, classes }: { students: Student[]; class
         title="Students"
         sub="Your enrolled learners, live from your school's records."
         right={
-          <>
+          canManage ? <>
             <Link href="/people/students/import" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="download" size={15} style={{ transform: "rotate(180deg)" }} /> Import
             </Link>
             <Link href="/people/students/manage" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
               <Icon name="plus" size={15} /> Add student
             </Link>
-          </>
+          </> : undefined
         }
       />
 

@@ -56,6 +56,7 @@ export default async function Page() {
         feeItems={feeItems.map((f) => ({ name: f.name, mandatory: f.mandatory }))}
         feeAmounts={feeAmounts}
         feePrefs={{ feeCollection: school.feeCollection, autoFeeReminders: school.autoFeeReminders }}
+        role={user.role}
         termInfo={{
           session: school.session,
           term: school.term,

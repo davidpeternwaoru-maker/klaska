@@ -49,6 +49,17 @@ export function scopeOf(role: Role, area: Area): Level | null {
   return MATRIX[area][role] ?? null;
 }
 
+/* ---- Action-level rules straight from the matrix (§5) ----
+   Owner VIEWS attendance & scores (never inputs); teachers input their OWN;
+   HOS full; HOD their dept. Admin manages records but never scores/money. */
+export const canMarkAttendance = (r: Role) => r === "HOS" || r === "TEACHER" || r === "HOD";
+export const canEnterScores = (r: Role) => r === "HOS" || r === "TEACHER" || r === "HOD";
+export const canManageStudents = (r: Role) => r === "OWNER" || r === "HOS" || r === "ADMIN";
+export const canManageSubjects = (r: Role) => r === "OWNER" || r === "HOS";
+export const canManageClasses = (r: Role) => r === "OWNER" || r === "HOS";
+export const canEditAcademicSettings = (r: Role) => r === "OWNER" || r === "HOS"; // term, grading (HOS "Limited")
+export const canEditFeeStructure = (r: Role) => r === "OWNER" || r === "BURSAR"; // Bursar "Fee setup"
+
 export const ROLE_LABEL: Record<Role, string> = {
   OWNER: "Owner / Proprietor",
   HOS: "Principal (HOS)",

@@ -6,11 +6,13 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
+import { canManageClasses } from "@/lib/auth/permissions";
 
 export type ActionState = { error?: string; ok?: boolean };
 
 export async function createClass(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  if (!canManageClasses(user.role)) return { error: "Only the owner or principal manages classes." };
   const name = String(formData.get("name") ?? "").trim();
   const arm = String(formData.get("arm") ?? "").trim() || null;
   const teacherId = String(formData.get("teacherId") ?? "").trim() || null;
@@ -35,6 +37,7 @@ export async function createClass(_prev: ActionState, formData: FormData): Promi
 /** Rename a class (level name and/or arm, e.g. "JSS 1" + "Emerald"). */
 export async function updateClass(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  if (!canManageClasses(user.role)) return { error: "Only the owner or principal manages classes." };
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const arm = String(formData.get("arm") ?? "").trim() || null;
@@ -54,6 +57,7 @@ export async function updateClass(_prev: ActionState, formData: FormData): Promi
 
 export async function deleteClass(formData: FormData): Promise<void> {
   const user = await requireUser();
+  if (!canManageClasses(user.role)) return;
   const id = String(formData.get("id") ?? "");
   // Students in a deleted class keep their record; their classId is set to null
   // automatically (onDelete: SetNull in the schema).

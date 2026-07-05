@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { classScope } from "@/lib/auth/scope";
+import { canView, canEnterScores } from "@/lib/auth/permissions";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { ResultsControls } from "@/components/dashboard/ResultsControls";
 import { ResultsGrid, type ExistingResult } from "@/components/dashboard/ResultsGrid";
@@ -14,6 +16,7 @@ export default async function Page({
   searchParams: Promise<{ classId?: string; subjectId?: string }>;
 }) {
   const user = await requireUser();
+  if (!canView(user.role, "results")) redirect("/");
   const sp = await searchParams;
 
   const [classes, subjects] = await Promise.all([
@@ -68,7 +71,7 @@ export default async function Page({
         <>
           <ResultsControls classes={classOptions} subjects={subjectOptions} classId={classId} subjectId={subjectId} basePath="/academics/results" />
           {students.length > 0 ? (
-            <ResultsGrid key={`${classId}:${subjectId}`} classId={classId} subjectId={subjectId} students={students} existing={existing} />
+            <ResultsGrid key={`${classId}:${subjectId}`} classId={classId} subjectId={subjectId} students={students} existing={existing} readOnly={!canEnterScores(user.role)} />
           ) : (
             <Card className="mt-5 text-center text-[13px] text-ink-4">No students in this class yet.</Card>
           )}

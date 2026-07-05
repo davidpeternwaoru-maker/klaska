@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { ATT_STATUSES, type SaveAttendanceResult } from "@/lib/attendance";
+import { canMarkAttendance } from "@/lib/auth/permissions";
 
 export async function saveAttendance(
   classId: string,
@@ -16,6 +17,9 @@ export async function saveAttendance(
   entries: { studentId: string; status: string }[],
 ): Promise<SaveAttendanceResult> {
   const user = await requireUser();
+  // Matrix: Owner/Bursar/Admin VIEW attendance; only HOS, teachers (own class)
+  // and HODs mark it.
+  if (!canMarkAttendance(user.role)) return { error: "Your role can view attendance but not mark it." };
   if (!classId || !dateStr) return { error: "Pick a class and a date first." };
 
   const klass = await prisma.class.findFirst({ where: { id: classId, schoolId: user.schoolId } });

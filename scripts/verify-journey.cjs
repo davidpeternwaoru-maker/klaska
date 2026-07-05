@@ -53,7 +53,8 @@ const check = (label, b) => { console.log(ok(b), label); if (!b) fails++; };
   r = await get("/people/staff");
   check("STAFF: owner listed", r.status === 200 && /Ada Proprietor/.test(r.html));
   r = await get(`/people/attendance?classId=${jss1.id}&date=${today.toISOString().slice(0, 10)}`);
-  check("ATTENDANCE: student + saved mark UI", r.status === 200 && /Bola/.test(r.html) && /Save attendance/.test(r.html));
+  // Matrix: the OWNER views attendance (no save button) — teachers/HOS mark it.
+  check("ATTENDANCE: student + owner view-only", r.status === 200 && /Bola/.test(r.html) && /View only/.test(r.html) && !/Save attendance/.test(r.html));
   r = await get(`/academics/results?classId=${jss1.id}&subjectId=${math.id}`);
   check("RESULTS: student + saved A1 grade", r.status === 200 && /Bola/.test(r.html) && /A1/.test(r.html));
   r = await get("/finance/fees");

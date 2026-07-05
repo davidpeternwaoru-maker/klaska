@@ -28,11 +28,13 @@ export function ResultsGrid({
   subjectId,
   students,
   existing,
+  readOnly = false,
 }: {
   classId: string;
   subjectId: string;
   students: Student[];
   existing: Record<string, ExistingResult>;
+  readOnly?: boolean;
 }) {
   const [cells, setCells] = useState<Record<string, Cells>>(() =>
     Object.fromEntries(
@@ -71,9 +73,9 @@ export function ResultsGrid({
     <Card pad={0} className="mt-5 overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <Pill tone="neutral">{entered}/{students.length} entered</Pill>
-        <button onClick={save} disabled={pending} className="h-9 rounded-[9px] bg-forest px-4 text-[13px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+        {readOnly ? <Pill tone="neutral">View only — your role sees scores but doesn&apos;t enter them</Pill> : <button onClick={save} disabled={pending} className="h-9 rounded-[9px] bg-forest px-4 text-[13px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
           {pending ? "Saving…" : "Save results"}
-        </button>
+        </button>}
       </div>
       {(msg || error) && <div className={`px-4 pb-2 text-[12.5px] font-medium ${error ? "text-red" : "text-green"}`}>{error ?? msg}</div>}
 
@@ -96,9 +98,9 @@ export function ResultsGrid({
               return (
                 <tr key={s.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-1.5 font-medium text-ink">{s.name}</td>
-                  <td className="px-2 py-1.5 text-center"><input inputMode="numeric" value={c.ca1} onChange={(e) => set(s.id, "ca1", e.target.value)} className={inp} /></td>
-                  <td className="px-2 py-1.5 text-center"><input inputMode="numeric" value={c.ca2} onChange={(e) => set(s.id, "ca2", e.target.value)} className={inp} /></td>
-                  <td className="px-2 py-1.5 text-center"><input inputMode="numeric" value={c.exam} onChange={(e) => set(s.id, "exam", e.target.value)} className={inp} /></td>
+                  <td className="px-2 py-1.5 text-center"><input inputMode="numeric" disabled={readOnly} value={c.ca1} onChange={(e) => set(s.id, "ca1", e.target.value)} className={inp} /></td>
+                  <td className="px-2 py-1.5 text-center"><input inputMode="numeric" disabled={readOnly} value={c.ca2} onChange={(e) => set(s.id, "ca2", e.target.value)} className={inp} /></td>
+                  <td className="px-2 py-1.5 text-center"><input inputMode="numeric" disabled={readOnly} value={c.exam} onChange={(e) => set(s.id, "exam", e.target.value)} className={inp} /></td>
                   <td className="px-2 py-1.5 text-center font-semibold text-ink">{total ?? "—"}</td>
                   <td className="px-3 py-1.5 text-center">{grade ? <Pill tone={gradeTone(grade)}>{grade}</Pill> : <span className="text-ink-4">—</span>}</td>
                 </tr>

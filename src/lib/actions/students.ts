@@ -7,6 +7,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
+import { canManageStudents } from "@/lib/auth/permissions";
 
 export type ActionState = { error?: string; ok?: boolean };
 
@@ -37,6 +38,7 @@ async function classBelongs(schoolId: string, classId: string | null) {
 
 export async function createStudent(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  if (!canManageStudents(user.role)) return { error: "Your role can view students but not edit records." };
   const f = readForm(formData);
   if (!f.firstName || !f.lastName) return { error: "First and last name are required." };
   if (!(await classBelongs(user.schoolId, f.classId))) return { error: "Selected class was not found." };
@@ -67,6 +69,7 @@ export async function createStudent(_prev: ActionState, formData: FormData): Pro
 
 export async function updateStudent(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  if (!canManageStudents(user.role)) return { error: "Your role can view students but not edit records." };
   const id = String(formData.get("id") ?? "");
   const f = readForm(formData);
   if (!id) return { error: "Missing student id." };
@@ -97,6 +100,7 @@ export async function updateStudent(_prev: ActionState, formData: FormData): Pro
 
 export async function deleteStudent(formData: FormData): Promise<void> {
   const user = await requireUser();
+  if (!canManageStudents(user.role)) return;
   const id = String(formData.get("id") ?? "");
   if (id) await prisma.student.deleteMany({ where: { id, schoolId: user.schoolId } });
   revalidatePath("/dashboard/students");
@@ -125,6 +129,7 @@ const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
  *  that don't exist yet. Blank admission numbers are auto-generated. */
 export async function importStudents(rows: ImportRow[], createMissingClasses: boolean): Promise<ImportResult> {
   const user = await requireUser();
+  if (!canManageStudents(user.role)) return { created: 0, classesCreated: [], skipped: 0, error: "Your role cannot import students." };
   if (!rows?.length) return { created: 0, classesCreated: [], skipped: 0, error: "No rows to import." };
 
   // Build a lookup of this school's existing classes (by "name arm" and by name).

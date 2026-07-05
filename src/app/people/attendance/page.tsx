@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { classScope } from "@/lib/auth/scope";
+import { canMarkAttendance } from "@/lib/auth/permissions";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { AttendanceControls } from "@/components/dashboard/AttendanceControls";
 import { AttendanceMarker } from "@/components/dashboard/AttendanceMarker";
@@ -45,7 +46,7 @@ export default async function Page({
         <>
           <AttendanceControls classes={classOptions} classId={classId} date={date} basePath="/people/attendance" />
           {students.length > 0 ? (
-            <AttendanceMarker key={`${classId}:${date}`} classId={classId} date={date} students={students} existing={existing} />
+            <AttendanceMarker key={`${classId}:${date}`} classId={classId} date={date} students={students} existing={existing} readOnly={!canMarkAttendance(user.role)} />
           ) : (
             <Card className="mt-5 text-center text-[13px] text-ink-4">No students in this class yet.</Card>
           )}

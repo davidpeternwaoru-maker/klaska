@@ -17,6 +17,22 @@ import type { WizardSchool, WizardClass, WizardBand, WizardFeeItem, WizardFeeAmo
 
 export type TermInfo = { session: string | null; term: string | null; termStart: string | null; termEnd: string | null };
 
+const ALL_TABS = [
+  { value: "profile", label: "Profile & branding" },
+  { value: "term", label: "Session & term" },
+  { value: "sections", label: "Sections" },
+  { value: "classes", label: "Classes & arms" },
+  { value: "grading", label: "Grading" },
+  { value: "fees", label: "Fees" },
+  { value: "access", label: "Roles & access" },
+];
+// Matrix SS5: Owner Full · HOS Limited (academic setup) · Bursar Fee setup.
+const TABS_FOR: Record<string, string[]> = {
+  OWNER: ["profile", "term", "sections", "classes", "grading", "fees", "access"],
+  HOS: ["term", "classes", "grading"],
+  BURSAR: ["fees"],
+};
+
 export function SettingsTabs({
   school,
   grading,
@@ -27,6 +43,7 @@ export function SettingsTabs({
   feeAmounts,
   feePrefs,
   termInfo,
+  role = "OWNER",
 }: {
   school: WizardSchool;
   grading: Record<string, WizardBand[]>;
@@ -37,8 +54,9 @@ export function SettingsTabs({
   feeAmounts: WizardFeeAmounts;
   feePrefs: { feeCollection: string; autoFeeReminders: boolean };
   termInfo: TermInfo;
+  role?: "OWNER" | "HOS" | "BURSAR" | "HOD" | "TEACHER" | "ADMIN";
 }) {
-  const [tab, setTab] = useState("profile");
+  const [tab, setTab] = useState(() => (TABS_FOR[role] ?? ["profile"])[0]);
   const [saved, setSaved] = useState(false);
   const done = () => {
     setSaved(true);
@@ -51,15 +69,7 @@ export function SettingsTabs({
         <SegTabs
           value={tab}
           onChange={setTab}
-          tabs={[
-            { value: "profile", label: "Profile & branding" },
-            { value: "term", label: "Session & term" },
-            { value: "sections", label: "Sections" },
-            { value: "classes", label: "Classes & arms" },
-            { value: "grading", label: "Grading" },
-            { value: "fees", label: "Fees" },
-            { value: "access", label: "Roles & access" },
-          ]}
+          tabs={ALL_TABS.filter((t) => TABS_FOR[role]?.includes(t.value) ?? t.value === "profile")}
         />
         {saved && <span className="text-[12.5px] font-medium text-green">Saved ✓</span>}
       </div>

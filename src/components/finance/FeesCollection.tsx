@@ -132,6 +132,100 @@ function PayModal({ row, onClose }: { row: FeeRow; onClose: () => void }) {
   );
 }
 
+/* ---------- record payment with student picker (header button) ---------- */
+function PickPayModal({ rows, onClose }: { rows: FeeRow[]; onClose: () => void }) {
+  // owing students first, then everyone else
+  const ordered = useMemo(() => [...rows].sort((a, b) => Number(statusOf(a) === "paid") - Number(statusOf(b) === "paid")), [rows]);
+  const [selectedId, setSelectedId] = useState(ordered[0]?.id ?? "");
+  const row = ordered.find((r) => r.id === selectedId) ?? null;
+
+  if (rows.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
+        <div className="mt-14 w-full max-w-[440px]" onClick={(e) => e.stopPropagation()}>
+          <Card>
+            <div className="mb-1 text-[14px] font-semibold text-ink">Record payment</div>
+            <p className="text-[13px] text-ink-4">No invoices for this term yet — use “Generate this term&apos;s invoices” in the banner above first, then record payments against them.</p>
+            <div className="mt-4 flex justify-end">
+              <button onClick={onClose} className="h-10 rounded-[10px] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">Close</button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="mt-14 w-full max-w-[460px]" onClick={(e) => e.stopPropagation()}>
+        <Card>
+          <div className="mb-3 text-[14px] font-semibold text-ink">Record payment</div>
+          <label className="block">
+            <span className="mb-1 block text-[11.5px] font-medium text-ink-3">Student</span>
+            <select
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card"
+            >
+              {ordered.map((r) => {
+                const bal = Math.max(0, r.total - r.paid);
+                return (
+                  <option key={r.id} value={r.id}>
+                    {r.student} — {r.className ?? "no class"} · {bal > 0 ? `owes ${ngn(bal)}` : "paid in full"}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+          {row && <InlinePayForm row={row} onDone={onClose} />}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function InlinePayForm({ row, onDone }: { row: FeeRow; onDone: () => void }) {
+  const [state, action, pending] = useActionState<FinanceState, FormData>(recordPayment, {});
+  useEffect(() => {
+    if (state.ok) onDone();
+  }, [state.ok, state, onDone]);
+  const balance = Math.max(0, row.total - row.paid);
+  const input = "h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
+  return (
+    <form key={row.id} action={action} className="mt-3 flex flex-col gap-3">
+      <input type="hidden" name="invoiceId" value={row.id} />
+      <div className="rounded-[10px] bg-secondary px-3 py-2 text-[12.5px] text-ink-3">
+        Bill {ngn(row.total)} · paid {ngn(row.paid)} · balance <b className="text-ink">{ngn(balance)}</b>
+      </div>
+      <label className="block">
+        <span className="mb-1 block text-[11.5px] font-medium text-ink-3">Amount (₦) *</span>
+        <input name="amount" inputMode="numeric" required defaultValue={balance || ""} className={input} />
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="mb-1 block text-[11.5px] font-medium text-ink-3">Method</span>
+          <select name="method" defaultValue="TRANSFER" className={input}>
+            <option value="TRANSFER">Bank transfer</option>
+            <option value="CASH">Cash</option>
+            <option value="POS">POS</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11.5px] font-medium text-ink-3">Reference</span>
+          <input name="reference" placeholder="teller / transfer ref" className={input} />
+        </label>
+      </div>
+      {state.error && <p className="text-[12.5px] font-medium text-red">{state.error}</p>}
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onDone} className="h-10 rounded-[10px] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">Cancel</button>
+        <button disabled={pending} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+          {pending ? "Saving…" : "Record payment"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 /* ---------- main ---------- */
 export function FeesCollection({
   meta,
@@ -156,6 +250,7 @@ export function FeesCollection({
   const [classFilter, setClassFilter] = useState("all");
   const [q, setQ] = useState("");
   const [paying, setPaying] = useState<FeeRow | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [genPending, startGen] = useTransition();
 
@@ -193,12 +288,7 @@ export function FeesCollection({
       flash(res.ok ? `Created ${res.created} invoice(s).` : res.error ?? "Nothing to do.");
     });
 
-  const openFirstOwing = () => {
-    const owing = rows.find((r) => statusOf(r) !== "paid");
-    if (owing) setPaying(owing);
-    else flash("Everyone is fully paid. 🎉");
-  };
-
+  
   const tabBtn = (v: typeof tab, label: string) => (
     <button
       key={v}
@@ -224,7 +314,7 @@ export function FeesCollection({
               <Icon name="bell" size={15} /> Send pay link
             </button>
             {canManage && (
-              <button onClick={openFirstOwing} className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
                 <Icon name="plus" size={15} /> Record payment
               </button>
             )}
@@ -410,6 +500,7 @@ export function FeesCollection({
       </Card>
 
       {paying && <PayModal row={paying} onClose={() => setPaying(null)} />}
+      {pickerOpen && <PickPayModal rows={rows} onClose={() => setPickerOpen(false)} />}
     </div>
   );
 }

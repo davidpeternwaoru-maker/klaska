@@ -89,6 +89,9 @@ const check = (label, b) => { console.log(ok(b), label); if (!b) fails++; };
   r = await get("/finance/system");
   check("FINANCIAL SYSTEM: collected, expenses, net", r.status === 200 && /50,000/.test(r.html) && /30,000/.test(r.html) && /20,000/.test(r.html));
 
+  r = await get("/academics/ai");
+  check("AI OUTCOMES: real readiness + student status", r.status === 200 && /Bola/.test(r.html) && /On track|Borderline|At risk/.test(r.html) && /Readiness by class/.test(r.html));
+
   // ---- Permission matrix: a TEACHER sees only their class, never money ----
   const tEmail = `teach+${Date.now()}@klaska.test`;
   const teacher = await prisma.staff.create({ data: { schoolId: school.id, name: "Tunde Teacher", email: tEmail, passwordHash: "x", role: "TEACHER" } });

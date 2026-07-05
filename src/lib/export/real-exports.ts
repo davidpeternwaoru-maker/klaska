@@ -53,6 +53,26 @@ export async function exportBroadsheet(
   download(`broadsheet-${classLabel.replace(/\s+/g, "-").toLowerCase()}.xlsx`, await wb.xlsx.writeBuffer());
 }
 
+/** Fee status per student: fee, paid, balance, status. */
+export async function exportFeesExcel(
+  meta: ExportMeta,
+  rows: { student: string; className: string | null; total: number; paid: number }[],
+) {
+  const ExcelJS = (await import("exceljs")).default;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Fees");
+  ws.columns = [{ width: 28 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }];
+  const top = header(ws, meta, "Fees collection — term fee status", 6);
+  ws.getRow(top).values = ["Student", "Class", "Fee (₦)", "Paid (₦)", "Balance (₦)", "Status"];
+  headRow(ws.getRow(top));
+  rows.forEach((r) => {
+    const bal = Math.max(0, r.total - r.paid);
+    ws.addRow([r.student, r.className ?? "—", r.total, r.paid, bal, r.paid >= r.total ? "Paid in full" : r.paid > 0 ? "Partial" : "Unpaid"]);
+  });
+  ws.views = [{ state: "frozen", ySplit: top }];
+  download("fees-collection.xlsx", await wb.xlsx.writeBuffer());
+}
+
 /** Financial statement: revenue vs expenses + payment & expense registers. */
 export async function exportFinancialStatement(
   meta: ExportMeta,

@@ -33,7 +33,8 @@ export const NAV_GROUPS: NavGroup[] = [
     icon: "reports",
     items: [
       { id: "results", label: "Results Entry", icon: "edit", href: "/academics/results", area: "results" },
-      { id: "reports", label: "Report Cards & Results", icon: "reports", href: "/academics/reports", area: "results" },
+      { id: "reportcards", label: "Report Cards", icon: "reports", href: "/academics/report-cards", area: "results" },
+      { id: "reports", label: "Analysis (demo)", icon: "trend", href: "/academics/reports", area: "results" },
       { id: "ai", label: "AI Outcomes Engine", icon: "ai", href: "/academics/ai", accent: true, area: "ai" },
     ],
   },

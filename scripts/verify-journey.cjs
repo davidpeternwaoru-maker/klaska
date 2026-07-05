@@ -72,6 +72,16 @@ const check = (label, b) => { console.log(ok(b), label); if (!b) fails++; };
   r = await get("/finance/fees");
   check("FINANCE: invoice + part-payment + balance", r.status === 200 && /Part-paid/.test(r.html) && /120,000/.test(r.html) && /50,000/.test(r.html) && /70,000/.test(r.html));
 
+  // ---- Report cards from real results (needs grading bands for remarks) ----
+  await prisma.gradingBand.createMany({
+    data: [
+      { schoolId: school.id, category: "SECONDARY", label: "A1", minScore: 75, maxScore: 100, remark: "Excellent", order: 0 },
+      { schoolId: school.id, category: "SECONDARY", label: "F9", minScore: 0, maxScore: 39, remark: "Fail", order: 8 },
+    ],
+  });
+  r = await get(`/academics/report-cards?classId=${jss1.id}`);
+  check("REPORT CARDS: ranked list + 1st position + average", r.status === 200 && /Bola/.test(r.html) && /1st/.test(r.html) && /76(<!-- -->)?%/.test(r.html));
+
   // ---- Permission matrix: a TEACHER sees only their class, never money ----
   const tEmail = `teach+${Date.now()}@klaska.test`;
   const teacher = await prisma.staff.create({ data: { schoolId: school.id, name: "Tunde Teacher", email: tEmail, passwordHash: "x", role: "TEACHER" } });

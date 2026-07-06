@@ -21,7 +21,7 @@ const check = (label, b) => { console.log(ok(b), label); if (!b) fails++; };
   const school = await prisma.school.create({
     data: {
       name: "Sunrise College", shortName: "SC", motto: "Light and Truth",
-      sections: ["JUNIOR", "SENIOR"], setupCompletedAt: new Date(),
+      sections: ["JUNIOR", "SENIOR"], setupCompletedAt: new Date(), tier: "ENTERPRISE",
       session: "2025/2026", term: "THIRD", termStart: new Date(2026, 3, 27), termEnd: new Date(2026, 6, 24),
       staff: { create: { name: "Ada Proprietor", title: "Proprietor", email, passwordHash: "x", role: "OWNER" } },
     },

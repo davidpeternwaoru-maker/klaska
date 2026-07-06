@@ -12,7 +12,7 @@ export default async function Page() {
   const school = await prisma.school.findUnique({ where: { id: user.schoolId } });
   if (!school) return null;
 
-  const [classes, bands, feeItems, classFees, staff] = await Promise.all([
+  const [classes, bands, feeItems, classFees, staff, campuses] = await Promise.all([
     prisma.class.findMany({
       where: { schoolId: user.schoolId },
       include: { _count: { select: { students: true } } },
@@ -22,6 +22,7 @@ export default async function Page() {
     prisma.feeItem.findMany({ where: { schoolId: user.schoolId }, orderBy: { order: "asc" } }),
     prisma.classFee.findMany({ where: { schoolId: user.schoolId } }),
     prisma.staff.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "asc" } }),
+    prisma.campus.findMany({ where: { schoolId: user.schoolId }, include: { _count: { select: { classes: true } } }, orderBy: { name: "asc" } }),
   ]);
 
   const grading: Record<string, WizardBand[]> = {};
@@ -57,6 +58,12 @@ export default async function Page() {
         feeAmounts={feeAmounts}
         feePrefs={{ feeCollection: school.feeCollection, autoFeeReminders: school.autoFeeReminders }}
         role={user.role}
+        plan={{
+          tier: school.tier,
+          multiCampus: school.multiCampus,
+          campuses: campuses.map((c) => ({ id: c.id, name: c.name, classCount: c._count.classes })),
+          classCampuses: classes.map((c) => ({ id: c.id, label: c.arm ? `${c.name} ${c.arm}` : c.name, campusId: c.campusId })),
+        }}
         termInfo={{
           session: school.session,
           term: school.term,

@@ -19,6 +19,7 @@ export function FeesStep({
   onDone,
   onSaved,
   ctaLabel,
+  onSkip,
 }: {
   classes: WizardClass[];
   items: WizardFeeItem[];
@@ -26,6 +27,7 @@ export function FeesStep({
   onDone: () => void;
   onSaved?: (summary: { items: number; total: number }) => void;
   ctaLabel?: string;
+  onSkip?: () => void;
 }) {
   const classLabel = (c: WizardClass) => (c.arm ? `${c.name} ${c.arm}` : c.name);
 
@@ -159,7 +161,10 @@ export function FeesStep({
         </>
       )}
 
-      <div className="mt-5 flex items-center justify-end">
+      <div className="mt-5 flex items-center justify-end gap-3">
+        {onSkip && (
+          <button onClick={onSkip} className="text-[13px] font-medium text-ink-4 transition hover:text-ink">Skip for now →</button>
+        )}
         <button onClick={save} disabled={pending} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
           {pending ? "Saving…" : ctaLabel ?? "Save & continue"}
         </button>

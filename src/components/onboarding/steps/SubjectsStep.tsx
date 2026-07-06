@@ -17,7 +17,7 @@ const COMMON: { group: string; subjects: string[] }[] = [
   { group: "Languages & Others", subjects: ["Yoruba", "Igbo", "Hausa", "French", "Home Economics", "Physical & Health Education"] },
 ];
 
-export function SubjectsStep({ existing, onDone, ctaLabel }: { existing: string[]; onDone: () => void; ctaLabel?: string }) {
+export function SubjectsStep({ existing, onDone, ctaLabel, onSkip }: { existing: string[]; onDone: () => void; ctaLabel?: string; onSkip?: () => void }) {
   const have = new Set(existing.map((s) => s.toLowerCase()));
   const [picked, setPicked] = useState<Set<string>>(
     () => new Set(COMMON.flatMap((g) => g.subjects).filter((s) => have.has(s.toLowerCase()))),
@@ -89,7 +89,7 @@ export function SubjectsStep({ existing, onDone, ctaLabel }: { existing: string[
           <span className="ml-auto text-[12.5px] text-ink-4">{total} selected</span>
         </div>
       </div>
-      <StepFooter pending={pending} onSave={save} cta={ctaLabel} />
+      <StepFooter pending={pending} onSave={save} cta={ctaLabel} onSkip={onSkip} />
     </Card>
   );
 }

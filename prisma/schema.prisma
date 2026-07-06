@@ -53,6 +53,10 @@ model School {
   // Fee collection preferences. Virtual (bank/virtual-account) tracking lands later.
   feeCollection    String  @default("MANUAL") // MANUAL | VIRTUAL
   autoFeeReminders Boolean @default(false)
+  // Tiering (feature flags): BASIC = small schools, ENTERPRISE = operational depth.
+  tier        String  @default("BASIC") // BASIC | ENTERPRISE
+  // Multi-campus is enterprise complexity — hidden for small schools.
+  multiCampus Boolean @default(false)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -68,6 +72,43 @@ model School {
   invoices     Invoice[]
   payments     Payment[]
   expenses     Expense[]
+  guardians    Guardian[]
+  campuses     Campus[]
+}
+
+// One PERSON, many children (the guardian-student decoupling). The import
+// engine dedupes by normalised phone / email so "Chidi Obi", "Chidi O." and
+// "Mr Obi" with the same number become ONE guardian linked to all their kids —
+// the backbone for SMS + payment links.
+model Guardian {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  name      String
+  phone     String?
+  phoneKey  String? // digits-only, last-10 normalised — the dedup key
+  email     String?
+  createdAt DateTime @default(now())
+
+  students Student[]
+
+  @@index([schoolId, phoneKey])
+  @@index([schoolId, email])
+}
+
+// School → Campus → Level hierarchy for large institutions (e.g. a Primary
+// campus and a Secondary campus with distinct budgets under one Owner).
+// Small schools never see this: multiCampus=false hides it entirely.
+model Campus {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  name      String
+  createdAt DateTime @default(now())
+
+  classes Class[]
+
+  @@unique([schoolId, name])
 }
 
 // A staff member. This is also the *login account* — email + password live here.
@@ -99,6 +140,8 @@ model Class {
   arm       String? // stream, e.g. "A" (optional)
   teacher   Staff?   @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
   teacherId String?
+  campus    Campus?  @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  campusId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -121,8 +164,10 @@ model Student {
   admissionNo   String? // e.g. "KLK-0001"
   gender        String? // "M" / "F"
   dob           DateTime?
-  guardianName  String?
+  guardianName  String? // legacy snapshot (kept for display/back-compat)
   guardianPhone String?
+  guardian      Guardian? @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  guardianId    String?
   class         Class?    @relation(fields: [classId], references: [id], onDelete: SetNull)
   classId       String?
   createdAt     DateTime  @default(now())

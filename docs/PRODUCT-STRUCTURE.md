@@ -34,3 +34,19 @@ deleted) → events: Result & Attendance (term-tagged), Invoice→Payment, Notic
 1 Foundation ✅ · 2 Finance core ✅ (invoices, manual payments, defaulters) ·
 3 Academic core ✅ attendance/scores, report cards NEXT · 4 Intelligence (next) ·
 5 Tiered modules (later).
+
+## Scale spine & monetisation (PM addendum) — IMPLEMENTED
+- **Guardian decoupling:** `Guardian` object deduped by normalised phone
+  (digits-only, last 10) / email; single-add, edit and bulk import all link
+  many students to ONE guardian — the backbone for SMS/payment links.
+- **Multi-campus:** School → Campus → Class hierarchy. `multiCampus` flag
+  (Enterprise-only) keeps it invisible for small schools; Owner manages
+  campuses + assigns classes in Settings → Plan & campuses.
+- **Tiering:** `School.tier` BASIC | ENTERPRISE with feature flags in
+  `src/lib/tier.ts`. AI Engine gated to Enterprise (upgrade card for Basic);
+  virtual accounts / cross-term flags reserved. Owner switches plan in Settings.
+- **Onboarding funnel flipped:** Profile → Structure → Classes → **Students
+  (import, the early win) → Staff** → Subjects → Grading → Fees → Review,
+  with "Skip for now" on Subjects/Grading/Fees so nobody stalls.
+- **Draft imports:** valid rows always import; broken rows stay in an editable
+  in-app fix queue (inline name fixes → re-import).

@@ -180,6 +180,18 @@ export function ImportStudents({ existingClasses }: { existingClasses: string[] 
     downloadBlob("klaska-students-template.xlsx", new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
   }
 
+  // edit a broken row in place; it re-validates as they type (the fix queue)
+  function fixRow(rowNo: number, patch: { firstName?: string; lastName?: string }) {
+    setRows((rs) =>
+      rs?.map((r) => {
+        if (r._row !== rowNo) return r;
+        const next = { ...r, ...patch };
+        next._valid = !!(next.firstName.trim() && next.lastName.trim());
+        return next;
+      }) ?? null,
+    );
+  }
+
   async function doImport() {
     if (!rows) return;
     setImporting(true);
@@ -187,7 +199,10 @@ export function ImportStudents({ existingClasses }: { existingClasses: string[] 
       const clean: ImportRow[] = rows.filter((r) => r._valid).map(({ _row, _valid, _class, ...rest }) => { void _row; void _valid; void _class; return rest; });
       const res = await importStudents(clean, createMissing);
       setResult(res);
-      if (!res.error) setRows(null);
+      if (!res.error) {
+        const broken = rows.filter((r) => !r._valid);
+        setRows(broken.length ? broken : null); // valid rows saved; broken stay to fix
+      }
     } finally {
       setImporting(false);
     }
@@ -208,7 +223,7 @@ export function ImportStudents({ existingClasses }: { existingClasses: string[] 
           </div>
           <div className="mt-1 text-[12.5px] text-ink-3">
             {result.classesCreated.length > 0 && <>Created {result.classesCreated.length} new class(es): {result.classesCreated.join(", ")}. </>}
-            {result.skipped > 0 && <>{result.skipped} row(s) skipped (missing names). </>}
+            {result.skipped > 0 && <>{result.skipped} row(s) still need fixing below — edit the names and click Import again. </>}
           </div>
           <Link href="/people/students" className="mt-3 inline-block text-[13px] font-medium text-forest hover:underline">
             View students →
@@ -284,8 +299,15 @@ export function ImportStudents({ existingClasses }: { existingClasses: string[] 
                   <tr key={r._row} className={`border-b border-border last:border-0 ${r._valid ? "" : "bg-red-soft/40"}`}>
                     <td className="px-3 py-2 text-ink-4">{r._row}</td>
                     <td className="px-3 py-2 font-medium text-ink">
-                      {r.firstName} {r.lastName}
-                      {!r._valid && <span className="ml-1 text-[11px] text-red">(missing name)</span>}
+                      {r._valid ? (
+                        <>{r.firstName} {r.lastName}</>
+                      ) : (
+                        <span className="flex items-center gap-1.5">
+                          <input value={r.firstName} onChange={(e) => fixRow(r._row, { firstName: e.target.value })} placeholder="First name" className="h-7 w-24 rounded-[6px] border border-red/40 bg-card px-1.5 text-[12px] outline-none focus:border-forest-line" />
+                          <input value={r.lastName} onChange={(e) => fixRow(r._row, { lastName: e.target.value })} placeholder="Last name" className="h-7 w-24 rounded-[6px] border border-red/40 bg-card px-1.5 text-[12px] outline-none focus:border-forest-line" />
+                          <span className="text-[10.5px] font-medium text-red">fix name</span>
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-ink-3">{r.gender ?? "—"}</td>
                     <td className="px-3 py-2 text-ink-3">{r.dob ?? "—"}</td>

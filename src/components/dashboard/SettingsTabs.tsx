@@ -13,6 +13,7 @@ import { TermSettings } from "./TermSettings";
 import { SettingsClasses, type SettingsClassRow } from "./SettingsClasses";
 import { FeePrefs } from "./FeePrefs";
 import { StaffManager, type StaffRow } from "./StaffManager";
+import { PlanSettings, type CampusRow, type ClassCampusRow } from "./PlanSettings";
 import type { WizardSchool, WizardClass, WizardBand, WizardFeeItem, WizardFeeAmounts } from "@/components/onboarding/types";
 
 export type TermInfo = { session: string | null; term: string | null; termStart: string | null; termEnd: string | null };
@@ -25,10 +26,11 @@ const ALL_TABS = [
   { value: "grading", label: "Grading" },
   { value: "fees", label: "Fees" },
   { value: "access", label: "Roles & access" },
+  { value: "plan", label: "Plan & campuses" },
 ];
 // Matrix SS5: Owner Full · HOS Limited (academic setup) · Bursar Fee setup.
 const TABS_FOR: Record<string, string[]> = {
-  OWNER: ["profile", "term", "sections", "classes", "grading", "fees", "access"],
+  OWNER: ["profile", "term", "sections", "classes", "grading", "fees", "access", "plan"],
   HOS: ["term", "classes", "grading"],
   BURSAR: ["fees"],
 };
@@ -44,6 +46,7 @@ export function SettingsTabs({
   feePrefs,
   termInfo,
   role = "OWNER",
+  plan,
 }: {
   school: WizardSchool;
   grading: Record<string, WizardBand[]>;
@@ -55,6 +58,7 @@ export function SettingsTabs({
   feePrefs: { feeCollection: string; autoFeeReminders: boolean };
   termInfo: TermInfo;
   role?: "OWNER" | "HOS" | "BURSAR" | "HOD" | "TEACHER" | "ADMIN";
+  plan?: { tier: string; multiCampus: boolean; campuses: CampusRow[]; classCampuses: ClassCampusRow[] };
 }) {
   const [tab, setTab] = useState(() => (TABS_FOR[role] ?? ["profile"])[0]);
   const [saved, setSaved] = useState(false);
@@ -86,6 +90,7 @@ export function SettingsTabs({
           </>
         )}
         {tab === "access" && <StaffManager staff={staff} />}
+        {tab === "plan" && plan && <PlanSettings tier={plan.tier} multiCampus={plan.multiCampus} campuses={plan.campuses} classes={plan.classCampuses} />}
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import { categoriesForSections, GRADING_TEMPLATES, GRADING_CATEGORY_LABEL, type 
 import type { WizardBand } from "../types";
 import { StepHead, StepFooter, inputCls } from "../ui";
 
-export function GradingStep({ sections, existing, onDone, ctaLabel }: { sections: string[]; existing: Record<string, WizardBand[]>; onDone: () => void; ctaLabel?: string }) {
+export function GradingStep({ sections, existing, onDone, ctaLabel, onSkip }: { sections: string[]; existing: Record<string, WizardBand[]>; onDone: () => void; ctaLabel?: string; onSkip?: () => void }) {
   const cats = categoriesForSections(sections);
   const catList: GradingCategory[] = cats.length ? cats : ["SECONDARY"];
   const [active, setActive] = useState<GradingCategory>(catList[0]);
@@ -85,7 +85,7 @@ export function GradingStep({ sections, existing, onDone, ctaLabel }: { sections
       </div>
 
       {error && <p className="mt-3 text-[12.5px] font-medium text-red">{error}</p>}
-      <StepFooter pending={pending} onSave={save} cta={ctaLabel} />
+      <StepFooter pending={pending} onSave={save} cta={ctaLabel} onSkip={onSkip} />
     </Card>
   );
 }

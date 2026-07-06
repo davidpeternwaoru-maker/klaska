@@ -28,22 +28,31 @@ export function StepFooter({
   onSave,
   cta = "Save & continue",
   extra,
+  onSkip,
 }: {
   pending: boolean;
   onSave: () => void;
   cta?: string;
   extra?: ReactNode;
+  onSkip?: () => void; // PM: never let a hard step stall onboarding
 }) {
   return (
     <div className="mt-5 flex items-center justify-between gap-3">
       {extra ?? <span />}
-      <button
-        onClick={onSave}
-        disabled={pending}
-        className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60"
-      >
-        {pending ? "Saving…" : cta}
-      </button>
+      <span className="flex items-center gap-3">
+        {onSkip && (
+          <button onClick={onSkip} className="text-[13px] font-medium text-ink-4 transition hover:text-ink">
+            Skip for now →
+          </button>
+        )}
+        <button
+          onClick={onSave}
+          disabled={pending}
+          className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60"
+        >
+          {pending ? "Saving…" : cta}
+        </button>
+      </span>
     </div>
   );
 }

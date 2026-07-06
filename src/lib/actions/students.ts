@@ -36,6 +36,40 @@ async function classBelongs(schoolId: string, classId: string | null) {
   return !!(await prisma.class.findFirst({ where: { id: classId, schoolId } }));
 }
 
+/* ------------------- guardian decoupling (one parent, many kids) -------------------
+   Nigerian reality: one parent, 3–5 children, imported with typos ("Chidi Obi",
+   "Chidi O.", "Mr Obi"). We dedupe on a normalised phone key (digits only,
+   last 10) or email, so SMS/payment links always hit ONE guardian object. */
+
+function phoneKeyOf(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 7) return null; // too short to be a real number
+  return digits.slice(-10);
+}
+
+/** Find-or-create the guardian for (name, phone, email); returns id or null. */
+async function resolveGuardian(
+  schoolId: string,
+  name: string | null,
+  phone: string | null,
+  email?: string | null,
+): Promise<string | null> {
+  const key = phoneKeyOf(phone);
+  const mail = email?.trim().toLowerCase() || null;
+  if (!key && !mail) return null; // nothing to match on → no guardian object
+
+  const existing = await prisma.guardian.findFirst({
+    where: { schoolId, OR: [...(key ? [{ phoneKey: key }] : []), ...(mail ? [{ email: mail }] : [])] },
+  });
+  if (existing) return existing.id;
+
+  const created = await prisma.guardian.create({
+    data: { schoolId, name: name?.trim() || "Guardian", phone: phone?.trim() || null, phoneKey: key, email: mail },
+  });
+  return created.id;
+}
+
 export async function createStudent(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   if (!canManageStudents(user.role)) return { error: "Your role can view students but not edit records." };
@@ -54,6 +88,7 @@ export async function createStudent(_prev: ActionState, formData: FormData): Pro
         dob: f.dob ? new Date(f.dob) : null,
         guardianName: f.guardianName,
         guardianPhone: f.guardianPhone,
+        guardianId: await resolveGuardian(user.schoolId, f.guardianName, f.guardianPhone),
         classId: f.classId,
       },
     });
@@ -87,6 +122,7 @@ export async function updateStudent(_prev: ActionState, formData: FormData): Pro
       dob: f.dob ? new Date(f.dob) : null,
       guardianName: f.guardianName,
       guardianPhone: f.guardianPhone,
+      guardianId: await resolveGuardian(user.schoolId, f.guardianName, f.guardianPhone),
       classId: f.classId,
       ...(f.admissionNo ? { admissionNo: f.admissionNo } : {}),
     },
@@ -157,6 +193,17 @@ export async function importStudents(rows: ImportRow[], createMissingClasses: bo
   const valid = rows.filter((r) => r.firstName?.trim() && r.lastName?.trim());
   const skipped = rows.length - valid.length;
 
+  // one guardian per unique phone/email across the whole file
+  const gCache = new Map<string, string | null>();
+  async function guardianFor(name: string | null | undefined, phone: string | null | undefined): Promise<string | null> {
+    const key = phoneKeyOf(phone) ?? "";
+    if (!key) return null;
+    if (gCache.has(key)) return gCache.get(key)!;
+    const id = await resolveGuardian(user.schoolId, name ?? null, phone ?? null);
+    gCache.set(key, id);
+    return id;
+  }
+
   let nextNo = (await prisma.student.count({ where: { schoolId: user.schoolId } })) + 1;
   const data: {
     schoolId: string;
@@ -167,6 +214,7 @@ export async function importStudents(rows: ImportRow[], createMissingClasses: bo
     dob: Date | null;
     guardianName: string | null;
     guardianPhone: string | null;
+    guardianId: string | null;
     classId: string | null;
   }[] = [];
 
@@ -182,6 +230,7 @@ export async function importStudents(rows: ImportRow[], createMissingClasses: bo
       dob: r.dob ? new Date(r.dob) : null,
       guardianName: r.guardianName?.trim() || null,
       guardianPhone: r.guardianPhone?.trim() || null,
+      guardianId: await guardianFor(r.guardianName, r.guardianPhone),
       classId,
     });
   }

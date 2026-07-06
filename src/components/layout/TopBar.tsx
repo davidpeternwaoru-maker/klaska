@@ -75,6 +75,9 @@ export function TopBar({ user }: { user?: TopBarUser }) {
               <Link href="/settings" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
                 <Icon name="settings" size={15} /> School settings
               </Link>
+              <Link href="/account/password" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+                <Icon name="refresh" size={15} /> Change password
+              </Link>
               <div className="h-px bg-border" />
               <form action={logout}>
                 <button className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] font-medium text-red transition hover:bg-red-soft">

@@ -6,6 +6,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import type { SessionUser } from "@/lib/auth/jwt";
+import { classScope } from "@/lib/auth/scope";
 
 export type SubjectStat = { subject: string; avg: number; best: { name: string; total: number } | null };
 export type ClassAnalysis = {
@@ -32,8 +33,9 @@ export async function buildSchoolAnalysis(user: SessionUser): Promise<SchoolAnal
   const termFilter =
     school?.session && school.term ? { OR: [{ session: school.session, term: school.term }, { session: null }] } : {};
 
+  // Matrix: teachers analyse their OWN classes only (HODs their dept).
   const [classes, results] = await Promise.all([
-    prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),
+    prisma.class.findMany({ where: classScope(user), orderBy: [{ name: "asc" }, { arm: "asc" }] }),
     prisma.result.findMany({
       where: { schoolId: user.schoolId, total: { not: null }, ...termFilter },
       include: { subject: true, student: true },

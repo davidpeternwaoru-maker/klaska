@@ -1,68 +1,118 @@
-# Klaska — School Operating System 🇳🇬
+# Klaska — School Operating System
 
-A **multi-tenant SaaS** for Nigerian private schools: enrolment, attendance, results & report cards, fees & payments, financial analytics and role-based access — one core, many views.
-
-**Live demo:** https://klaska-mu.vercel.app
-
-| Try it as… | Email | Password |
-|---|---|---|
-| School owner (full access) | `owner@klaskademo.com` | `demo1234` |
-| Teacher (own class only) | `teacher@klaskademo.com` | `demo1234` |
-| Bursar (finance view) | `bursar@klaskademo.com` | `demo1234` |
-
-> Log in as the **owner**, then in another tab as the **teacher** — and watch the entire app reshape itself around the role: the money disappears, the teacher sees only their own class, their own students, their own analysis. Or sign up your own school and run the onboarding wizard.
+A web application for Nigerian private schools. This is the **real, database-backed
+application**. The earlier mock prototype lives on inside `src/app` and
+`src/components` as the design source we migrate from, screen by screen.
 
 ---
 
-## What's built
+## The stack
 
-- **Onboarding wizard** — a new school configures itself in minutes: profile & logo, sections it runs (Crèche→SSS 3), classes with free-named arms (incl. SSS departments), subjects, an editable Nigerian grading scale (WAEC A1–F9), per-class fee structure, staff with roles. Students import from **.xlsx/.csv** with a draft "fix queue" for broken rows.
-- **Guardian deduplication** — one parent with 5 children (and 5 typos of their name) resolves to **one Guardian object**, matched on normalised phone/email. The backbone for per-parent SMS & payment links.
-- **Role-based access (6 roles)** — Owner, Principal, Bursar, HOD, Teacher, Admin Officer. A central permission matrix drives navigation, page guards, *and* server-action enforcement. Each role gets its own Overview dashboard.
-- **Academics** — daily attendance (term-tagged), CA1/CA2/Exam score entry with live grading, **printable terminal report cards** (position in class, class averages, the school's own grading key), class-by-class analysis with Excel broadsheets.
-- **Finance** — per-class fee structures, one-click term invoicing, payment recording with balances & defaulters, expense tracking, live revenue/cost/profit dashboards, tax summary, formatted Excel statements.
-- **AI Outcomes Engine** *(Enterprise tier)* — readiness scores from real marks + attendance, at-risk flags, per-class breakdowns and concrete intervention suggestions.
-- **Tiering & feature flags** — Basic vs Enterprise plans gate modules (AI, multi-campus School→Campus hierarchy) without forking the core.
-- **Nigerian academic calendar** — sessions & three terms auto-detected, editable, stamped on every score/attendance/invoice.
+| Layer | Choice | Why |
+|------|--------|-----|
+| Framework | **Next.js (App Router)** + React + TypeScript | One codebase for UI + server. Server Components fetch data; Server Actions write it. |
+| Styling | **Tailwind CSS v4** + a custom design system | Fast, consistent, on-brand (Klaska green). |
+| Database | **PostgreSQL** (hosted on **Neon**) | A real relational database. Free serverless tier, same DB for dev and production. |
+| ORM | **Prisma** | Type-safe database access + migrations. You describe tables in `prisma/schema.prisma`; Prisma generates a typed client. |
+| Auth | **Custom session** (jose + bcryptjs) | Email/password login, role-based (Owner / Bursar / Teacher). Transparent and easy to read. |
 
-## Stack
+---
 
-**React 19 · Next.js 16 (App Router, Server Components + Server Actions) · TypeScript · Tailwind CSS v4 · Prisma 6 · PostgreSQL (Neon) · Vercel**
-
-Auth is hand-rolled and readable: bcrypt password hashing, JWT sessions in httpOnly cookies (`jose`), edge middleware guarding routes, per-request role checks. Excel exports via ExcelJS.
-
-## Architecture notes
+## Project structure (the parts that matter)
 
 ```
-src/
-├─ app/                  # routes (Server Components fetch; pages are thin)
-├─ components/           # design system + feature UIs ("use client" islands)
-├─ lib/
-│  ├─ auth/              # jwt, sessions, permission MATRIX, class scoping
-│  ├─ actions/           # Server Actions: every DB write, school-scoped + role-guarded
-│  ├─ tier.ts            # feature flags (Basic/Enterprise)
-│  └─ analysis / ai-real / reportcard  # computed intelligence from real records
-└─ prisma/schema.prisma  # multi-tenant spine: School → Campus → Class → Student
-                         #   + Guardian, Result, Attendance, Invoice→Payment, Expense…
+klaska/
+├─ prisma/
+│  └─ schema.prisma         ← your database tables (School, Staff, Class, Student)
+├─ src/
+│  ├─ middleware.ts         ← front-door auth guard for /dashboard
+│  ├─ lib/
+│  │  ├─ db.ts              ← the shared Prisma client (talks to Postgres)
+│  │  ├─ auth/
+│  │  │  ├─ jwt.ts          ← sign/verify the session token (Edge-safe)
+│  │  │  ├─ password.ts     ← bcrypt hash/verify
+│  │  │  ├─ session.ts      ← cookie helpers: createSession, getCurrentUser, requireUser
+│  │  │  └─ actions.ts      ← signup / login / logout server actions
+│  │  └─ actions/
+│  │     ├─ students.ts     ← create/update/delete students (DB writes)
+│  │     ├─ staff.ts        ← create/delete staff
+│  │     └─ classes.ts      ← create/delete classes
+│  ├─ app/
+│  │  ├─ (auth)/            ← /login and /signup (no sidebar)
+│  │  └─ dashboard/         ← the real app (requires login)
+│  │     ├─ layout.tsx      ← enforces login, draws the sidebar
+│  │     ├─ page.tsx        ← overview with live counts
+│  │     ├─ students/       ← students page
+│  │     ├─ staff/          ← staff page
+│  │     └─ classes/        ← classes page
+│  └─ components/
+│     ├─ auth/              ← login & signup forms
+│     ├─ dashboard/         ← Students / Staff / Classes managers (tables + forms)
+│     └─ ui/                ← shared design system (Card, Button, Icon, …)
+└─ .env                     ← your secrets (NOT committed)
 ```
 
-**Principles:** one record, many views · every query scoped by `schoolId` (tenant isolation) · role decides the view (enforced server-side, not hidden client-side) · balances/positions computed, never stored.
+**The data flow, end to end:** a page under `src/app/dashboard` is a *Server
+Component* — it runs on the server, calls `prisma.*` to read from Postgres, and
+passes plain data to a *Client Component* manager (the tables/forms). When you
+submit a form it calls a *Server Action* in `src/lib/actions/*`, which writes to
+Postgres and calls `revalidatePath()` so the page re-renders with fresh data.
 
-Product spec lives in [`docs/PRODUCT-STRUCTURE.md`](docs/PRODUCT-STRUCTURE.md); an end-to-end verification script (`scripts/verify-journey.cjs`) exercises 17 checks against a live instance — signup-to-report-card, permission matrix included.
+---
 
-## Status
+## Running it locally
 
-In active development toward pilot with real schools. Shipped and verified: everything above. On the roadmap: payment-gateway virtual accounts (Paystack/Flutterwave), SMS/WhatsApp delivery for parent notices, payroll, HOD approval workflows, cross-term retention analytics, teacher mobile app (React Native).
+### One-time setup
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+2. **Create the database (Neon).** Sign up at https://neon.tech (free), create a
+   project named `klaska`, then open **Connection Details** and copy the
+   connection strings.
+3. **Configure secrets.** Copy the example file and fill it in:
+   ```bash
+   cp .env.example .env
+   ```
+   - `DATABASE_URL` → Neon **pooled** string (host contains `-pooler`)
+   - `DIRECT_URL` → Neon **direct** string
+   - `AUTH_SECRET` → generate one:
+     ```bash
+     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+     ```
+4. **Create the tables** (Prisma reads `schema.prisma` and builds them in Postgres):
+   ```bash
+   npm run db:migrate
+   ```
 
-## Running locally
+### Every day
+```bash
+npm run dev      # start the app at http://localhost:3000
+```
+Then open **http://localhost:3000/signup**, create your school, and you're in.
+
+### Useful database commands
+```bash
+npm run db:studio     # visual table browser in the browser
+npm run db:migrate    # apply schema changes (creates a migration)
+npm run db:generate   # regenerate the typed Prisma client
+```
+
+---
+
+## Saving your progress with Git
 
 ```bash
-npm install
-cp .env.example .env   # add a Postgres URL (Neon) + AUTH_SECRET
-npm run db:migrate
-npm run dev            # http://localhost:3000
+git status                       # see what changed
+git add -A                       # stage everything
+git commit -m "Describe what you did"
 ```
 
----
+Good habit: commit after each working change with a short message. To put it on
+GitHub later, create an empty repo there and:
+```bash
+git remote add origin <your-repo-url>
+git push -u origin main
+```
 
-Built by **David Peter** · Lagos, Nigeria.
+> `.env` is gitignored on purpose — your database password never goes into Git.

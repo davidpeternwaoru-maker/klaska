@@ -31,6 +31,7 @@
   --color-surface: #f6f6f4;
   --color-surface-2: #fafafa;
   --color-paper: #ffffff;
+  --color-secondary-2: #e9e9e5; /* hover/pressed step of secondary */
 
   /* Status */
   --color-red: #dc2626;
@@ -141,6 +142,46 @@ textarea {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
+}
+
+/* ---------- System-wide interaction states (design-system layer) ---------- */
+
+/* Keyboard focus: one consistent, branded ring everywhere. Mouse/touch users
+   never see it (focus-visible), keyboard users always do. */
+:focus-visible {
+  outline: 2px solid rgba(27, 94, 32, 0.55);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: rgba(27, 94, 32, 0.16);
+}
+
+/* Skeleton shimmer — calm loading instead of spinners. */
+@keyframes k-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.k-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    100deg,
+    var(--color-secondary) 40%,
+    #efefec 50%,
+    var(--color-secondary) 60%
+  );
+  background-size: 200% 100%;
+  animation: k-shimmer 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-skeleton {
+    animation: none;
+  }
 }
 
 /* ---------- Motion ---------- */

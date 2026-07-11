@@ -13,7 +13,7 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const user = token ? await verifyToken(token) : null;
 
-  const isProtected = pathname.startsWith("/dashboard");
+  const isProtected = pathname === "/" || pathname.startsWith("/dashboard");
   const isAuthPage = pathname === "/login" || pathname === "/signup";
 
   if (isProtected && !user) {
@@ -28,11 +28,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Permission Matrix at the front door: money is invisible to teachers and
+  // admin officers — a hard 307 before any page code runs.
+  if (user && pathname.startsWith("/finance") && (user.role === "TEACHER" || user.role === "ADMIN")) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
   return NextResponse.next();
 }
 
-// Only run middleware on these paths (keeps it off static assets, the prototype
-// showcase pages, etc.).
+// Only run middleware on these paths (keeps it off static assets etc.).
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup"],
+  matcher: ["/", "/dashboard/:path*", "/finance/:path*", "/login", "/signup"],
 };

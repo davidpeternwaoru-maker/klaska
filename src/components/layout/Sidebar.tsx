@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { navForRole, type NavGroup } from "@/lib/nav";
 import type { Role } from "@/lib/auth/jwt";
 import { Icon, KLogo } from "@/components/ui/Icon";
-import { SCHOOL } from "@/data/overview";
 
 export function Sidebar({ school, role }: { school: import("./AppShell").ShellSchool; role: Role | null }) {
   const GROUPS = navForRole(role);
@@ -14,9 +13,9 @@ export function Sidebar({ school, role }: { school: import("./AppShell").ShellSc
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // Show the logged-in school (falls back to the demo name when signed out).
-  const displayName = school?.name || SCHOOL.name;
-  const displayShort = school?.shortName || SCHOOL.shortName;
+  // Show the logged-in school (the shell only renders when signed in).
+  const displayName = school?.name || "Your school";
+  const displayShort = school?.shortName || "SC";
 
   // Which group the current route belongs to (drives the rail highlight even
   // when the panel is collapsed).
@@ -112,7 +111,7 @@ export function Sidebar({ school, role }: { school: import("./AppShell").ShellSc
             )}
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13px] font-semibold leading-tight text-ink">{displayName}</span>
-              <span className="block text-[11px] text-ink-4">{school ? `${school.termLabel} · ${school.session}` : SCHOOL.term}</span>
+              <span className="block text-[11px] text-ink-4">{school ? `${school.termLabel} · ${school.session}` : "Current term"}</span>
             </span>
             <Icon name="chevD" size={14} style={{ color: "var(--color-ink-4)" }} />
           </button>
@@ -165,18 +164,18 @@ export function Sidebar({ school, role }: { school: import("./AppShell").ShellSc
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[12px] font-medium text-ink-3">{school ? school.termLabel : "Term progress"}</span>
               <span className="text-[12px] font-semibold text-ink">
-                {school ? school.weeksDone : SCHOOL.termWeeksDone}/{school ? school.weeksTotal : SCHOOL.termWeeksTotal} wks
+                {school ? school.weeksDone : 0}/{school ? school.weeksTotal : 1} wks
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-border">
               <div
                 className="h-full rounded-full bg-amber transition-[width] duration-500"
                 style={{
-                  width: `${((school ? school.weeksDone : SCHOOL.termWeeksDone) / (school ? school.weeksTotal : SCHOOL.termWeeksTotal)) * 100}%`,
+                  width: `${((school ? school.weeksDone : 0) / (school ? school.weeksTotal : 1)) * 100}%`,
                 }}
               />
             </div>
-            <div className="mt-2 text-[11px] text-ink-4">Ends {school ? school.termEnds : SCHOOL.termEnds}</div>
+            <div className="mt-2 text-[11px] text-ink-4">Ends {school ? school.termEnds : "—"}</div>
           </div>
         </div>
       </aside>

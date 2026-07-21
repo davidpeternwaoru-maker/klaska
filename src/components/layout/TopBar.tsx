@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { SyncIndicator } from "./SyncIndicator";
-import { SCHOOL } from "@/data/overview";
 import { logout } from "@/lib/auth/actions";
 
 export type TopBarUser = { name: string; roleLabel: string; schoolShort: string } | null;
@@ -32,8 +31,8 @@ export function TopBar({ user }: { user?: TopBarUser }) {
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const name = user?.name ?? SCHOOL.principal;
-  const subtitle = user ? `${user.roleLabel} · ${user.schoolShort}` : `Principal · ${SCHOOL.shortName}`;
+  const name = user?.name ?? "Account";
+  const subtitle = user ? `${user.roleLabel} · ${user.schoolShort}` : "Not signed in";
 
   return (
     <header className="flex h-14 flex-none items-center justify-between border-b border-border bg-background/70 px-6 backdrop-blur-xl">

@@ -2,9 +2,8 @@
    (jsPDF + autotable), each with a school header (logo, name, term, session).
    Libraries are dynamically imported so they stay out of the initial bundle. */
 
-import type { FullAnalysis } from "@/data/academics";
-import type { Appraisal, RaterId } from "@/data/appraisals";
-import { COMPETENCIES, STATUS_META } from "@/data/appraisals";
+import type { Appraisal, RaterId } from "@/lib/appraisals/config";
+import { COMPETENCIES, STATUS_META } from "@/lib/appraisals/config";
 
 export type SchoolMeta = { name: string; term: string; session: string };
 
@@ -43,63 +42,6 @@ function styleHeader(row: any) {
   row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN } };
   row.alignment = { vertical: "middle" };
   row.height = 20;
-}
-
-export async function exportReportExcel(a: FullAnalysis, school: SchoolMeta) {
-  const ExcelJS = (await import("exceljs")).default;
-  const wb = new ExcelJS.Workbook();
-  wb.creator = "Klaska";
-
-  // Summary sheet
-  const sum = wb.addWorksheet("Summary");
-  sum.columns = [{ width: 28 }, { width: 26 }, { width: 16 }, { width: 12 }];
-  let r = titleBlock(sum, school, "Report Card Analysis — Summary", 4);
-  sum.getRow(r).values = ["Metric", "Detail", "", "Value"];
-  styleHeader(sum.getRow(r));
-  const hRow = r;
-  sum.addRow(["School average", "across all subjects", "", `${a.schoolAvg}%`]);
-  sum.addRow(["Pass rate", "students scoring ≥ 50%", "", `${a.passRate}%`]);
-  sum.addRow(["Best student (whole school)", a.bestSchool ? a.bestSchool.s.name : "—", a.bestSchool?.klass ?? "", a.bestSchool ? `${a.bestSchool.average}%` : ""]);
-  sum.addRow([]);
-  const bpsHead = sum.addRow(["Best student per subject", "Student", "Class", "Score"]);
-  styleHeader(bpsHead);
-  a.bestPerSubject.forEach((b) => sum.addRow([b.subject, b.name, b.klass, b.total]));
-  sum.addRow([]);
-  const miHead = sum.addRow(["Most improved", "Class", "Prev → Now", "Gain"]);
-  styleHeader(miHead);
-  a.mostImproved.slice(0, 10).forEach((p) => sum.addRow([p.s.name, p.klass, `${p.prev} → ${p.average}`, `+${p.delta}`]));
-  sum.views = [{ state: "frozen", ySplit: hRow }];
-
-  // per-class sheets (broadsheet)
-  a.classReports.forEach((c) => {
-    const ws = wb.addWorksheet(c.klass.slice(0, 31));
-    const subjects = c.subjectAvgs.map((x) => x.subject);
-    ws.columns = [{ width: 5 }, { width: 24 }, ...subjects.map(() => ({ width: 11 })), { width: 10 }];
-    const top = titleBlock(ws, school, `Class broadsheet — ${c.klass}`, subjects.length + 3);
-    ws.getRow(top).values = ["Pos", "Student", ...subjects, "Average"];
-    styleHeader(ws.getRow(top));
-    c.ranked.forEach((p, i) => {
-      ws.addRow([i + 1, p.s.name, ...subjects.map((sub) => p.subjects.find((y) => y.subject === sub)?.total ?? ""), p.average]);
-    });
-    const avgRow = ws.addRow(["", "Class average", ...c.subjectAvgs.map((x) => x.avg), c.classAvg]);
-    avgRow.font = { bold: true };
-    avgRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: SOFT } };
-    ws.views = [{ state: "frozen", ySplit: top, xSplit: 2 }];
-  });
-
-  // per-department sheets
-  a.deptReports.filter((d) => d.n).forEach((d) => {
-    const ws = wb.addWorksheet(`Dept ${d.name}`.slice(0, 31));
-    ws.columns = [{ width: 5 }, { width: 24 }, { width: 14 }, { width: 12 }];
-    const top = titleBlock(ws, school, `Department — ${d.name}`, 4);
-    ws.getRow(top).values = ["Pos", "Student", "Class", "Average"];
-    styleHeader(ws.getRow(top));
-    d.ranked.forEach((p, i) => ws.addRow([i + 1, p.s.name, p.klass, p.average]));
-    ws.views = [{ state: "frozen", ySplit: top }];
-  });
-
-  const buf = await wb.xlsx.writeBuffer();
-  downloadBlob("klaska-report-analysis.xlsx", new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
 }
 
 export async function exportFinancialExcel(fin: FinancialData, school: SchoolMeta) {
@@ -165,62 +107,6 @@ function pdfHeader(doc: any, school: SchoolMeta, title: string) {
   doc.line(14, 28, 196, 28);
 }
 
-export async function exportReportPDF(a: FullAnalysis, school: SchoolMeta) {
-  const { default: jsPDF } = await import("jspdf");
-  const autoTable = (await import("jspdf-autotable")).default;
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  pdfHeader(doc, school, "Report Card Analysis");
-
-  const headStyle = { fillColor: [27, 94, 32] as [number, number, number], textColor: 255, fontStyle: "bold" as const };
-
-  autoTable(doc, {
-    startY: 34,
-    head: [["School summary", ""]],
-    body: [
-      ["School average", `${a.schoolAvg}%`],
-      ["Pass rate (≥50%)", `${a.passRate}%`],
-      ["Best student (whole school)", a.bestSchool ? `${a.bestSchool.s.name} — ${a.bestSchool.klass} (${a.bestSchool.average}%)` : "—"],
-    ],
-    theme: "grid",
-    headStyles: headStyle,
-    styles: { fontSize: 9, cellPadding: 2.5 },
-  });
-
-  autoTable(doc, {
-    head: [["Subject", "Best student", "Class", "Score"]],
-    body: a.bestPerSubject.map((b) => [b.subject, b.name, b.klass, String(b.total)]),
-    theme: "striped",
-    headStyles: headStyle,
-    styles: { fontSize: 9, cellPadding: 2.5 },
-    didDrawPage: () => {},
-  });
-
-  autoTable(doc, {
-    head: [["Class", "Class avg", "Best student", "Weakest subjects"]],
-    body: a.classReports.map((c) => [c.klass, `${c.classAvg}%`, `${c.best.s.name} (${c.best.average}%)`, c.weakest.map((w) => `${w.subject} ${w.avg}%`).join(", ")]),
-    theme: "grid",
-    headStyles: headStyle,
-    styles: { fontSize: 8.5, cellPadding: 2 },
-  });
-
-  autoTable(doc, {
-    head: [["Department", "Avg", "Best student", "Students"]],
-    body: a.deptReports.map((d) => [d.name, `${d.avg}%`, d.best ? `${d.best.s.name} (${d.best.average}%)` : "—", String(d.n)]),
-    theme: "grid",
-    headStyles: headStyle,
-    styles: { fontSize: 9, cellPadding: 2.5 },
-  });
-
-  autoTable(doc, {
-    head: [["Most improved", "Class", "Previous → Now", "Gain"]],
-    body: a.mostImproved.slice(0, 10).map((p) => [p.s.name, p.klass, `${p.prev} → ${p.average}`, `+${p.delta}`]),
-    theme: "striped",
-    headStyles: headStyle,
-    styles: { fontSize: 9, cellPadding: 2.5 },
-  });
-
-  doc.save("klaska-report-analysis.pdf");
-}
 
 export async function exportFinancialPDF(fin: FinancialData, school: SchoolMeta) {
   const { default: jsPDF } = await import("jspdf");

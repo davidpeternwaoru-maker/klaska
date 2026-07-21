@@ -102,6 +102,10 @@ model School {
   scores           Score[]
   curriculumTopics CurriculumTopic[]
   questions        Question[]
+  receipts         Receipt[]
+  payrollRuns      PayrollRun[]
+  appraisals       Appraisal[]
+  notificationLogs NotificationLog[]
 }
 
 // One PERSON, many children (the guardian-student decoupling). The import
@@ -156,6 +160,9 @@ model Staff {
 
   // A teacher can be the form teacher of one or more classes.
   classesLed Class[] @relation("ClassTeacher")
+  payslips           Payslip[]
+  appraisalsReceived Appraisal[] @relation("AppraisalSubject")
+  appraisalsGiven    Appraisal[] @relation("AppraisalRater")
 
   @@index([schoolId])
 }
@@ -378,6 +385,8 @@ model Payment {
   paidAt     DateTime @default(now())
   recordedBy String? // staff name
 
+  receipt Receipt?
+
   @@index([schoolId, paidAt])
   @@index([invoiceId])
 }
@@ -407,6 +416,8 @@ model Notice {
   body      String   @db.Text
   sentBy    String // staff name at send time
   createdAt DateTime @default(now())
+
+  notificationLogs NotificationLog[]
 
   @@index([schoolId, createdAt])
 }
@@ -635,4 +646,108 @@ model Question {
   @@index([schoolId])
   @@index([subjectId])
   @@index([topicId])
+}
+
+// ─────────────────────── Phase 1c: finance, HR & comms records ───────────────
+
+// A numbered receipt for a payment (one per payment). PDF generation lives in
+// the app; this row is the durable record + running number.
+model Receipt {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  paymentId String   @unique
+  number    String // e.g. "RCP-0001"
+  issuedAt  DateTime @default(now())
+
+  @@unique([schoolId, number])
+  @@index([schoolId])
+}
+
+// A payroll run for a period (e.g. "June 2026"): one payslip per staff member.
+model PayrollRun {
+  id          String   @id @default(cuid())
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId    String
+  periodLabel String // "June 2026"
+  session     String?
+  term        String?
+  status      String   @default("DRAFT") // DRAFT | APPROVED | PAID
+  totalGross  Int      @default(0)
+  totalNet    Int      @default(0)
+  runBy       String?
+  createdAt   DateTime @default(now())
+
+  payslips Payslip[]
+
+  @@index([schoolId])
+}
+
+// One staff member's pay for one run: gross − deductions = net.
+model Payslip {
+  id             String     @id @default(cuid())
+  payrollRun     PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  payrollRunId   String
+  staff          Staff      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId        String
+  gross          Int
+  pension        Int        @default(0)
+  tax            Int        @default(0)
+  otherDeduction Int        @default(0)
+  net            Int
+
+  @@unique([payrollRunId, staffId])
+  @@index([staffId])
+}
+
+// A teacher appraisal by a rater (self / HOD / HOS). Competency scores are rows
+// in AppraisalScore; the competency list itself lives in code, not the DB.
+model Appraisal {
+  id             String   @id @default(cuid())
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId       String
+  subjectStaff   Staff    @relation("AppraisalSubject", fields: [subjectStaffId], references: [id], onDelete: Cascade)
+  subjectStaffId String
+  raterStaff     Staff?   @relation("AppraisalRater", fields: [raterStaffId], references: [id], onDelete: SetNull)
+  raterStaffId   String?
+  raterRole      String // SELF | HOD | HOS
+  session        String?
+  term           String?
+  overall        Int?
+  comment        String?  @db.Text
+  status         String   @default("DRAFT") // DRAFT | SUBMITTED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  scores AppraisalScore[]
+
+  @@unique([subjectStaffId, raterRole, session, term])
+  @@index([schoolId])
+}
+
+model AppraisalScore {
+  id          String    @id @default(cuid())
+  appraisal   Appraisal @relation(fields: [appraisalId], references: [id], onDelete: Cascade)
+  appraisalId String
+  competency  String // e.g. "Teaching delivery"
+  score       Int
+
+  @@unique([appraisalId, competency])
+}
+
+// A per-recipient delivery record for a Notice (SMS/email/push land later).
+model NotificationLog {
+  id        String    @id @default(cuid())
+  school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  notice    Notice?   @relation(fields: [noticeId], references: [id], onDelete: SetNull)
+  noticeId  String?
+  recipient String // phone / email / staff or guardian name
+  channel   String // SMS | EMAIL | PUSH | INAPP
+  status    String    @default("QUEUED") // QUEUED | SENT | FAILED
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([schoolId, createdAt])
 }

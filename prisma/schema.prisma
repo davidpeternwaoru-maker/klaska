@@ -98,6 +98,10 @@ model School {
   departments   Department[]
   enrollments   Enrollment[]
   studentEvents StudentEvent[]
+  assessments      Assessment[]
+  scores           Score[]
+  curriculumTopics CurriculumTopic[]
+  questions        Question[]
 }
 
 // One PERSON, many children (the guardian-student decoupling). The import
@@ -215,6 +219,7 @@ model Student {
   payments    Payment[]
   enrollments Enrollment[]
   events      StudentEvent[]
+  scores      Score[]
 
   // Admission numbers are unique within a school (not globally).
   @@unique([schoolId, admissionNo])
@@ -252,10 +257,15 @@ model Subject {
   schoolId  String
   name      String
   code      String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  departmentId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  results Result[]
+  results   Result[]
+  scores    Score[]
+  topics    CurriculumTopic[]
+  questions Question[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -452,6 +462,8 @@ model Term {
   endDate   DateTime?
   createdAt DateTime  @default(now())
 
+  scores Score[]
+
   @@unique([sessionId, name])
   @@index([schoolId])
 }
@@ -486,6 +498,7 @@ model Department {
 
   classes  Class[]
   students Student[]
+  subjects Subject[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -525,4 +538,101 @@ model StudentEvent {
 
   @@index([schoolId])
   @@index([studentId])
+}
+
+// ─────────────────────── Phase 1b: assessments, scores, topics ───────────────
+// Score = student × subject × assessment × term (replaces Result's fixed
+// ca1/ca2/exam columns). Assessments are configurable per school. Every score
+// and question can be tagged to a CurriculumTopic — the field exists now
+// (seeded for Maths & English) even though the UI barely surfaces it yet.
+
+// A curriculum topic within a subject (e.g. Maths → "Fractions").
+model CurriculumTopic {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId String
+  name      String // e.g. "Fractions", "Comprehension"
+  code      String? // optional curriculum code
+  section   String? // EARLY | PRIMARY | JUNIOR | SENIOR
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  scores    Score[]
+  questions Question[]
+
+  @@index([schoolId])
+  @@index([subjectId])
+}
+
+// A configurable assessment component, e.g. CA1 (/20), CA2 (/20), Exam (/60).
+model Assessment {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  name      String // "CA1", "CA2", "Exam", "Project"…
+  maxScore  Int      @default(100)
+  weight    Int      @default(0) // % weight toward the term total
+  order     Int      @default(0)
+  category  String? // CA | EXAM | OTHER
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scores    Score[]
+  questions Question[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+}
+
+// One student's mark for one assessment, in one subject, in one term.
+model Score {
+  id           String   @id @default(cuid())
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId     String
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId    String
+  subject      Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId    String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessmentId String
+  term         Term?    @relation(fields: [termId], references: [id], onDelete: SetNull)
+  termId       String?
+  topic        CurriculumTopic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  topicId      String?
+  value        Int
+  session      String? // snapshot label (until termId is universally set)
+  termLabel    String? // FIRST | SECOND | THIRD snapshot
+  recordedBy   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([studentId, subjectId, assessmentId, termId]) // one mark per assessment/term
+  @@index([schoolId])
+  @@index([subjectId])
+  @@index([termId])
+}
+
+// A question in a subject/assessment, tagged to a curriculum topic. Minimal for
+// now — exists so AI auto-grading & topic analytics can attach to it later.
+model Question {
+  id           String   @id @default(cuid())
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId     String
+  subject      Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId    String
+  topic        CurriculumTopic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  topicId      String?
+  assessment   Assessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  assessmentId String?
+  text         String   @db.Text
+  answer       String?  @db.Text
+  marks        Int      @default(1)
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([schoolId])
+  @@index([subjectId])
+  @@index([topicId])
 }

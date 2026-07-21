@@ -33,6 +33,16 @@ export async function middleware(req: NextRequest) {
   // Every other matched route is protected.
   if (!user) return redirectTo("/login");
 
+  // Onboarding gate: an owner whose school isn't set up is funnelled to the
+  // wizard and can't wander into a half-configured app; everyone else (and a
+  // set-up owner) has no business on the wizard route.
+  const onOnboarding = pathname === "/onboarding";
+  if (user.role === "OWNER" && !user.setupComplete) {
+    if (!onOnboarding) return redirectTo("/onboarding");
+  } else if (onOnboarding) {
+    return redirectTo("/");
+  }
+
   // Role visibility straight from the matrix — a hard redirect before page code.
   const area = areaForPath(pathname);
   if (area && !canView(user.role, area)) return redirectTo("/");

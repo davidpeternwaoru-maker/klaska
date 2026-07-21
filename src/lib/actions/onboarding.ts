@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireCtx, ServiceError } from "@/server/context";
+import { createSession } from "@/lib/auth/session";
 import { setupService, type ClassLite } from "@/server/services/setup";
 
 export type SetupState = { ok?: boolean; error?: string };
@@ -78,6 +79,9 @@ export async function saveTermInfo(data: { session: string; term: string; termSt
 export async function completeSetup(): Promise<void> {
   const ctx = await requireCtx();
   await setupService.completeSetup(ctx);
+  // Re-issue the session so the token now says setup is done — this lifts the
+  // onboarding gate in middleware immediately (no re-login needed).
+  await createSession({ ...ctx, setupComplete: true });
   revalidatePath("/");
   redirect("/"); // the full, polished app
 }

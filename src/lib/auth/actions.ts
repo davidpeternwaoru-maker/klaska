@@ -39,7 +39,7 @@ export async function signupSchool(_prev: AuthState, formData: FormData): Promis
   });
 
   const owner = school.staff[0];
-  await createSession({ staffId: owner.id, schoolId: school.id, role: "OWNER", name: owner.name, email: owner.email });
+  await createSession({ staffId: owner.id, schoolId: school.id, role: "OWNER", name: owner.name, email: owner.email, setupComplete: false });
   redirect("/onboarding"); // new schools go through setup first
 }
 
@@ -48,14 +48,21 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
-  const staff = await prisma.staff.findUnique({ where: { email } });
+  const staff = await prisma.staff.findUnique({ where: { email }, include: { school: { select: { setupCompletedAt: true } } } });
   // Same generic message whether the email is unknown or the password is wrong,
   // so we don't reveal which emails have accounts.
   if (!staff || !(await verifyPassword(password, staff.passwordHash))) {
     return { error: "Invalid email or password." };
   }
 
-  await createSession({ staffId: staff.id, schoolId: staff.schoolId, role: staff.role, name: staff.name, email: staff.email });
+  await createSession({
+    staffId: staff.id,
+    schoolId: staff.schoolId,
+    role: staff.role,
+    name: staff.name,
+    email: staff.email,
+    setupComplete: staff.school.setupCompletedAt != null,
+  });
   redirect("/"); // the full, polished app
 }
 

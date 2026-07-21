@@ -1,11 +1,14 @@
+import { redirect } from "next/navigation";
 import { requireCtx } from "@/server/context";
 import { setupService } from "@/server/services/setup";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 export const metadata = { title: "Set up your school · Klaska" };
 
+// Only the owner runs the setup wizard (middleware also enforces this).
 export default async function OnboardingPage() {
   const user = await requireCtx();
+  if (user.role !== "OWNER") redirect("/");
   const v = await setupService.wizardView(user);
   if (!v) return null;
 

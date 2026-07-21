@@ -19,6 +19,8 @@ export type SessionUser = {
   role: Role;
   name: string;
   email: string;
+  /** Has this school finished the onboarding wizard? Drives the setup gate. */
+  setupComplete: boolean;
 };
 
 export const SESSION_COOKIE = "klaska_session";
@@ -48,6 +50,9 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
       role: payload.role as Role,
       name: String(payload.name),
       email: String(payload.email),
+      // Tokens minted before this field existed are treated as complete, so
+      // already-signed-in users are never wrongly trapped in the wizard.
+      setupComplete: payload.setupComplete === undefined ? true : Boolean(payload.setupComplete),
     };
   } catch {
     return null; // bad signature, expired, or malformed

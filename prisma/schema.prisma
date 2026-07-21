@@ -32,6 +32,24 @@ enum Role {
   ADMIN // Admin Officer — front desk: records, no money, no scores
 }
 
+// A student's enrolment status. Records are never deleted — status is set instead (§3).
+enum StudentStatus {
+  ACTIVE
+  GRADUATED
+  LEFT
+}
+
+// Timeline events on a student's journey (§6 "never deleted, full history").
+enum StudentEventType {
+  ENROLLED
+  PROMOTED
+  REPEATED
+  GRADUATED
+  LEFT
+  TRANSFERRED
+  REINSTATED
+}
+
 // A school = one tenant/account. The first person to sign up becomes its OWNER.
 model School {
   id        String   @id @default(cuid())
@@ -74,6 +92,12 @@ model School {
   expenses     Expense[]
   guardians    Guardian[]
   campuses     Campus[]
+  sessions      Session[]
+  terms         Term[]
+  levels        Level[]
+  departments   Department[]
+  enrollments   Enrollment[]
+  studentEvents StudentEvent[]
 }
 
 // One PERSON, many children (the guardian-student decoupling). The import
@@ -122,6 +146,7 @@ model Staff {
   role         Role     @default(TEACHER)
   title        String? // e.g. "Mathematics Teacher", "Head of Science"
   phone        String?
+  salaryMonthly Int? // gross monthly salary (naira) — feeds payroll
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -142,12 +167,17 @@ model Class {
   teacherId String?
   campus    Campus?  @relation(fields: [campusId], references: [id], onDelete: SetNull)
   campusId  String?
+  level        Level?      @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  levelId      String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  departmentId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  students   Student[]
-  attendance Attendance[]
-  classFees  ClassFee[]
+  students    Student[]
+  attendance  Attendance[]
+  classFees   ClassFee[]
+  enrollments Enrollment[]
 
   // No two classes in the same school can share the same name + arm.
   @@unique([schoolId, name, arm])
@@ -170,13 +200,21 @@ model Student {
   guardianId    String?
   class         Class?    @relation(fields: [classId], references: [id], onDelete: SetNull)
   classId       String?
+  // Lifecycle — records are never deleted; status is set instead (§3).
+  status          StudentStatus @default(ACTIVE)
+  statusReason    String?
+  statusChangedAt DateTime?
+  department      Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  departmentId    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  attendance Attendance[]
-  results    Result[]
-  invoices   Invoice[]
-  payments   Payment[]
+  attendance  Attendance[]
+  results     Result[]
+  invoices    Invoice[]
+  payments    Payment[]
+  enrollments Enrollment[]
+  events      StudentEvent[]
 
   // Admission numbers are unique within a school (not globally).
   @@unique([schoolId, admissionNo])
@@ -376,4 +414,115 @@ model ClassFee {
   @@unique([feeItemId, classId])
   @@index([schoolId])
   @@index([classId])
+}
+
+// ─────────────────────── Phase 1a: academic-structure spine ──────────────────
+// First-class Session/Term/Level/Department — previously string snapshots or
+// implicit in class names. All additive; existing string columns stay for now
+// and are dual-written during the migration, then retired in a later cleanup.
+
+// An academic year, e.g. "2025/2026". Exactly one isCurrent per school.
+model Session {
+  id        String    @id @default(cuid())
+  school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  name      String // "2025/2026"
+  isCurrent Boolean   @default(false)
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+
+  terms       Term[]
+  enrollments Enrollment[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+}
+
+// A term within a session (FIRST | SECOND | THIRD). Exactly one isCurrent.
+model Term {
+  id        String    @id @default(cuid())
+  school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  session   Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
+  name      String // FIRST | SECOND | THIRD
+  isCurrent Boolean   @default(false)
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([sessionId, name])
+  @@index([schoolId])
+}
+
+// A stage the school runs (Crèche … SSS 3). `label` is the school's renamable
+// display name; `name` is the canonical key used by history/promotions.
+model Level {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  name      String // canonical, e.g. "JSS 1"
+  label     String? // renamable display label, e.g. "Year 7"
+  section   String // EARLY | PRIMARY | JUNIOR | SENIOR
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  classes Class[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+}
+
+// A senior-secondary department (Science/Arts/Commercial). `label` renamable.
+model Department {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  name      String // e.g. "Science"
+  label     String? // renamable
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  classes  Class[]
+  students Student[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+}
+
+// A student's placement in a class for a given session — the class history that
+// makes promotions and the "full journey" possible without deleting anything.
+model Enrollment {
+  id        String    @id @default(cuid())
+  school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  class     Class?    @relation(fields: [classId], references: [id], onDelete: SetNull)
+  classId   String?
+  session   Session?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  sessionId String?
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([schoolId])
+  @@index([studentId])
+}
+
+// Timeline of a student's journey (enrolled, promoted, graduated, left…).
+model StudentEvent {
+  id        String           @id @default(cuid())
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  type      StudentEventType
+  session   String? // snapshot label at the time
+  term      String?
+  note      String?
+  createdAt DateTime         @default(now())
+
+  @@index([schoolId])
+  @@index([studentId])
 }

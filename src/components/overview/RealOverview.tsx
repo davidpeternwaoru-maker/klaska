@@ -2,6 +2,8 @@
 
 // The home dashboard, in the polished design but driven by the school's REAL
 // data (counts, recent enrolments) fetched on the server.
+// Reference screen for the Phase 5 visual language: five-step type scale,
+// 12px card radius, motion tokens, spacing on the 4/8/12/16/24 grid.
 
 import Link from "next/link";
 import { Card, SectionTitle, Pill } from "@/components/ui/primitives";
@@ -34,8 +36,8 @@ export function RealOverview({
   variant?: "full" | "academic" | "basic";
 }) {
   const greet = (() => {
-    const parts = userName.trim().split(/s+/);
-    return /^(mr|mrs|ms|miss|dr|chief|engr|prof).?$/i.test(parts[0]) && parts[1] ? parts.slice(0, 2).join(" ") : parts[0];
+    const parts = userName.trim().split(/\s+/);
+    return /^(mr|mrs|ms|miss|dr|chief|engr|prof)\.?$/i.test(parts[0]) && parts[1] ? parts.slice(0, 2).join(" ") : parts[0];
   })();
   const presentPct = counts.students ? Math.round((counts.present / counts.students) * 100) : 0;
 
@@ -69,7 +71,10 @@ export function RealOverview({
         title={`Welcome, ${greet}`}
         sub={`Here's ${schoolName} today.`}
         right={
-          <Link href="/people/students" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+          <Link
+            href="/people/students"
+            className="inline-flex h-9 items-center gap-2 rounded-[var(--radius-card)] bg-forest px-4 text-[13px] font-semibold text-white transition-[background-color,transform] duration-[var(--dur-fast)] ease-[var(--ease-out)] hover:bg-forest-2 active:scale-[0.98]"
+          >
             <Icon name="students" size={15} /> View students
           </Link>
         }
@@ -90,23 +95,27 @@ export function RealOverview({
         </div>
       )}
 
-      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* recent enrolments */}
         <Card pad={0} className="overflow-hidden lg:col-span-2">
-          <div className="flex items-center justify-between p-5">
-            <div className="text-[14px] font-semibold text-ink">Recent enrolments</div>
-            <Link href="/people/students" className="text-[12.5px] font-medium text-forest hover:underline">View all →</Link>
+          <div className="flex items-center justify-between px-6 pt-5 pb-3">
+            <h2 className="text-body font-semibold text-ink">Recent enrolments</h2>
+            <Link href="/people/students" className="text-caption font-medium text-forest transition-colors duration-[var(--dur-fast)] hover:text-forest-2">
+              View all →
+            </Link>
           </div>
           {recent.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 px-5 pb-10 pt-4 text-center">
-              <div className="text-[13px] text-ink-4">No students yet.</div>
-              <Link href="/people/students/import" className="text-[13px] font-medium text-forest hover:underline">Import your student list →</Link>
+            <div className="flex flex-col items-center gap-2 px-6 pb-12 pt-4 text-center">
+              <div className="text-caption text-ink-4">No students yet.</div>
+              <Link href="/people/students/import" className="text-caption font-medium text-forest hover:text-forest-2">
+                Import your student list →
+              </Link>
             </div>
           ) : (
             <div className="divide-y divide-border">
               {recent.map((s) => (
-                <div key={s.id} className="flex items-center gap-3 px-5 py-2.5">
-                  <Avatar name={s.name} hue={hueOf(s.id)} size={32} />
+                <div key={s.id} className="flex items-center gap-3 px-6 py-3 transition-colors duration-[var(--dur-fast)] hover:bg-secondary/50">
+                  <Avatar name={s.name} hue={hueOf(s.id)} size={34} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-medium text-ink">{s.name}</span>
                     <span className="block text-[11.5px] text-ink-4">{s.admissionNo ?? "—"}</span>
@@ -120,14 +129,19 @@ export function RealOverview({
 
         {/* quick actions */}
         <Card>
-          <div className="mb-3 text-[14px] font-semibold text-ink">Quick actions</div>
+          <h2 className="mb-4 text-body font-semibold text-ink">Quick actions</h2>
           <div className="flex flex-col gap-2">
             {quick.map((q) => (
-              <Link key={q.href} href={q.href} className="flex items-center gap-2.5 rounded-[10px] border border-border px-3 py-2.5 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
-                <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-forest-soft text-forest">
+              <Link
+                key={q.href}
+                href={q.href}
+                className="group flex items-center gap-3 rounded-[var(--radius-card)] border border-border px-3 py-2.5 text-[13px] font-medium text-ink-2 transition-[background-color,border-color] duration-[var(--dur-fast)] hover:border-forest-line hover:bg-forest-soft/40 hover:text-ink"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-forest-soft text-forest transition-transform duration-[var(--dur-fast)] group-hover:scale-105">
                   <Icon name={q.icon} size={15} />
                 </span>
                 {q.label}
+                <Icon name="chevR" size={14} className="ml-auto text-ink-4 transition-transform duration-[var(--dur-fast)] group-hover:translate-x-0.5" />
               </Link>
             ))}
           </div>

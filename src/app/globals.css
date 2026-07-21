@@ -45,6 +45,26 @@
   --font-sans: var(--font-geist), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-space-grotesk), var(--font-geist), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  /* Type scale — five deliberate steps (display / title / heading / body / caption).
+     Fewer sizes, stronger hierarchy — the opposite of scattered arbitrary px. */
+  --text-display: 34px;
+  --text-display--line-height: 1.06;
+  --text-display--letter-spacing: -0.021em;
+  --text-title: 28px;
+  --text-title--line-height: 1.12;
+  --text-title--letter-spacing: -0.018em;
+  --text-heading: 20px;
+  --text-heading--line-height: 1.25;
+  --text-heading--letter-spacing: -0.012em;
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+  --text-caption: 13px;
+  --text-caption--line-height: 1.45;
+
+  /* Two-radius system: 12 for cards/controls, 22 for large surfaces (modals, hero). */
+  --radius-card: 12px;
+  --radius-lg: 22px;
 }
 
 :root {
@@ -59,6 +79,12 @@
   --shadow-3: 0 2px 4px rgba(20, 20, 18, 0.04), 0 18px 40px -16px rgba(20, 20, 18, 0.18);
   --shadow-glow: 0 2px 8px -3px rgba(27, 94, 32, 0.12), 0 14px 34px -16px rgba(27, 94, 32, 0.22);
   --ring-focus: 0 0 0 3px rgba(27, 94, 32, 0.15);
+
+  /* Motion — three durations, one easing. Fast for taps, base for UI, slow for layout. */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.22, 0.8, 0.28, 1);
 
   /* shadcn semantic tokens mapped to the Klaska premium palette */
   --background: #f6f6f4;

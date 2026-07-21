@@ -1,15 +1,16 @@
 "use client";
 
 import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./Icon";
 
 /* ----------------------------------------------------------------
    Klaska design system — the primitives every screen consumes.
-   One token set (globals.css), one interaction language:
-   • rest → hover (lift/tint) → active (press) → focus-visible (ring)
-   • disabled is visibly quiet, never ambiguous
-   • motion 150–300ms, ease-out, respectful of reduced-motion
-   Calm, spacious, deliberate — Linear / Notion / Stripe energy.
+   One token set (globals.css): five-step type scale, two radii
+   (12 / 22), a 3-step elevation ladder, motion 120/200/320ms.
+   One interaction language: rest → hover → active (press) →
+   focus-visible (ring); disabled is visibly quiet.
    ---------------------------------------------------------------- */
 
 /* ============================ Card ============================ */
@@ -29,9 +30,11 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-border bg-card transition-[transform,box-shadow,border-color] duration-300 ease-out ${
-        hover ? "hover:-translate-y-0.5 hover:border-forest-line hover:shadow-[var(--shadow-glow)]" : ""
-      } ${className}`}
+      className={cn(
+        "rounded-[var(--radius-card)] border border-border bg-card transition-[transform,box-shadow,border-color] duration-[var(--dur-slow)] ease-[var(--ease-out)]",
+        hover && "hover:-translate-y-0.5 hover:border-forest-line hover:shadow-[var(--shadow-glow)]",
+        className,
+      )}
       style={{ boxShadow: "var(--shadow-1)", padding: pad, ...style }}
     >
       {children}
@@ -41,31 +44,27 @@ export function Card({
 
 /* ============================ Pill ============================ */
 
-type Tone = "neutral" | "forest" | "amber" | "red" | "green" | "blue";
-const TONES: Record<Tone, { fg: string; bg: string }> = {
-  neutral: { fg: "var(--color-ink-2)", bg: "var(--color-secondary)" },
-  forest: { fg: "var(--color-forest)", bg: "var(--color-forest-soft)" },
-  amber: { fg: "var(--color-amber-2)", bg: "var(--color-amber-soft)" },
-  red: { fg: "var(--color-red)", bg: "var(--color-red-soft)" },
-  green: { fg: "var(--color-green)", bg: "var(--color-green-soft)" },
-  blue: { fg: "var(--color-blue)", bg: "var(--color-blue-soft)" },
-};
+const pillVariants = cva(
+  "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-medium leading-none",
+  {
+    variants: {
+      tone: {
+        neutral: "bg-secondary text-ink-2",
+        forest: "bg-forest-soft text-forest",
+        amber: "bg-amber-soft text-amber-2",
+        red: "bg-red-soft text-red",
+        green: "bg-green-soft text-green",
+        blue: "bg-blue-soft text-blue",
+      },
+    },
+    defaultVariants: { tone: "neutral" },
+  },
+);
+type Tone = NonNullable<VariantProps<typeof pillVariants>["tone"]>;
 
-export function Pill({
-  children,
-  tone = "neutral",
-  style,
-}: {
-  children: ReactNode;
-  tone?: Tone;
-  style?: CSSProperties;
-}) {
-  const t = TONES[tone];
+export function Pill({ children, tone = "neutral", style }: { children: ReactNode; tone?: Tone; style?: CSSProperties }) {
   return (
-    <span
-      className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-medium leading-none"
-      style={{ background: t.bg, color: t.fg, ...style }}
-    >
+    <span className={pillVariants({ tone })} style={style}>
       {children}
     </span>
   );
@@ -73,19 +72,26 @@ export function Pill({
 
 /* ============================ Button ============================ */
 
-type ButtonKind = "primary" | "accent" | "ghost" | "soft" | "dark";
-
-// Class-driven variants: hover/active/focus/disabled live in CSS, not JS.
-const KIND_CLASSES: Record<ButtonKind, string> = {
-  primary:
-    "bg-forest text-white border border-forest shadow-[0_1px_2px_rgba(27,94,32,0.25)] hover:bg-forest-2 hover:border-forest-2 focus-visible:ring-forest/40",
-  accent:
-    "bg-amber text-white border border-amber hover:bg-amber-2 hover:border-amber-2 focus-visible:ring-amber/40",
-  ghost:
-    "bg-transparent text-ink-2 border border-border hover:bg-secondary hover:text-ink focus-visible:ring-forest/30",
-  soft: "bg-secondary text-ink border border-transparent hover:bg-secondary-2 focus-visible:ring-forest/30",
-  dark: "bg-ink text-white border border-ink hover:bg-black focus-visible:ring-ink/40",
-};
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-card)] font-medium outline-none transition-[background-color,border-color,transform,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease-out)] focus-visible:ring-2 focus-visible:ring-offset-2 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+  {
+    variants: {
+      kind: {
+        primary: "bg-forest text-white border border-forest shadow-[0_1px_2px_rgba(27,94,32,0.25)] hover:bg-forest-2 hover:border-forest-2 focus-visible:ring-forest/40",
+        accent: "bg-amber text-white border border-amber hover:bg-amber-2 hover:border-amber-2 focus-visible:ring-amber/40",
+        ghost: "bg-transparent text-ink-2 border border-border hover:bg-secondary hover:text-ink focus-visible:ring-forest/30",
+        soft: "bg-secondary text-ink border border-transparent hover:bg-secondary-2 focus-visible:ring-forest/30",
+        dark: "bg-ink text-white border border-ink hover:bg-black focus-visible:ring-ink/40",
+      },
+      size: {
+        sm: "h-8 px-3 text-[13px]",
+        md: "h-10 px-4 text-[13px]",
+      },
+    },
+    defaultVariants: { kind: "primary", size: "md" },
+  },
+);
+type ButtonKind = NonNullable<VariantProps<typeof buttonVariants>["kind"]>;
 
 export function Button({
   children,
@@ -108,16 +114,9 @@ export function Button({
   disabled?: boolean;
   className?: string;
 }) {
-  const s = size === "sm" ? { h: 32, px: 12, fs: 13, ir: 15 } : { h: 38, px: 15, fs: 13.5, ir: 16 };
   return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex items-center gap-2 whitespace-nowrap rounded-[10px] font-medium outline-none transition-[background-color,border-color,transform,box-shadow] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-offset-2 enabled:hover:-translate-y-px enabled:active:translate-y-0 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${KIND_CLASSES[kind]} ${className}`}
-      style={{ height: s.h, padding: `0 ${s.px}px`, fontSize: s.fs, ...style }}
-    >
-      {icon && <Icon name={icon} size={s.ir} />}
+    <button type={type} onClick={onClick} disabled={disabled} className={cn(buttonVariants({ kind, size }), className)} style={style}>
+      {icon && <Icon name={icon} size={size === "sm" ? 15 : 16} />}
       {children}
     </button>
   );
@@ -127,15 +126,15 @@ export function Button({
 
 /** The one field style for the whole app — quiet at rest, unmistakable focus. */
 export const inputCls =
-  "h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-ink-4 hover:border-line-2 focus:border-forest-line focus:bg-card focus:shadow-[var(--ring-focus)] disabled:cursor-not-allowed disabled:opacity-50";
+  "h-10 w-full rounded-[var(--radius-card)] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none transition-[border-color,background-color,box-shadow] duration-[var(--dur-fast)] placeholder:text-ink-4 hover:border-line-2 focus:border-forest-line focus:bg-card focus:shadow-[var(--ring-focus)] disabled:cursor-not-allowed disabled:opacity-50";
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement> & { label?: string; hint?: string }) {
   const { label, hint, className = "", ...rest } = props;
-  const field = <input {...rest} className={`${inputCls} ${className}`} />;
+  const field = <input {...rest} className={cn(inputCls, className)} />;
   if (!label) return field;
   return (
     <label className="block">
-      <span className="mb-1 block text-[12px] font-medium text-ink-2">{label}</span>
+      <span className="mb-1 block text-caption font-medium text-ink-2">{label}</span>
       {field}
       {hint && <span className="mt-1 block text-[11.5px] text-ink-4">{hint}</span>}
     </label>
@@ -158,11 +157,9 @@ export function SectionTitle({
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
       <div className="min-w-0">
-        {eyebrow && (
-          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-4">{eyebrow}</div>
-        )}
-        <h1 className="font-display text-[24px] font-bold leading-tight tracking-[-0.025em] text-ink">{title}</h1>
-        {sub && <p className="mt-1 max-w-[62ch] text-[13.5px] leading-relaxed text-ink-3">{sub}</p>}
+        {eyebrow && <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-4">{eyebrow}</div>}
+        <h1 className="font-display text-title font-bold text-ink">{title}</h1>
+        {sub && <p className="mt-1.5 max-w-[62ch] text-caption leading-relaxed text-ink-3">{sub}</p>}
       </div>
       {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
     </div>
@@ -185,7 +182,7 @@ export function SegTabs({
   onChange: (v: string) => void;
 }) {
   return (
-    <div role="tablist" className="inline-flex flex-wrap gap-0.5 rounded-[10px] bg-secondary p-1">
+    <div role="tablist" className="inline-flex flex-wrap gap-0.5 rounded-[var(--radius-card)] bg-secondary p-1">
       {tabs.map((t) => {
         const active = t.value === value;
         return (
@@ -194,11 +191,10 @@ export function SegTabs({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(t.value)}
-            className={`h-8 rounded-[7px] px-3.5 text-[13px] font-medium outline-none transition-[background-color,color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-forest/30 ${
-              active
-                ? "bg-card text-ink shadow-[0_1px_2px_rgba(20,20,18,0.06)]"
-                : "text-ink-3 hover:bg-card/60 hover:text-ink"
-            }`}
+            className={cn(
+              "h-8 rounded-[8px] px-3.5 text-[13px] font-medium outline-none transition-[background-color,color,box-shadow] duration-[var(--dur-fast)] focus-visible:ring-2 focus-visible:ring-forest/30",
+              active ? "bg-card text-ink shadow-[0_1px_2px_rgba(20,20,18,0.06)]" : "text-ink-3 hover:bg-card/60 hover:text-ink",
+            )}
           >
             {t.label}
           </button>
@@ -231,7 +227,7 @@ export function BarRow({
       <span className="w-32 flex-none truncate text-[13px] font-medium text-ink-2">{label}</span>
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-secondary">
         <div
-          className="h-full rounded-full transition-[width] duration-500 ease-out"
+          className="h-full rounded-full transition-[width] duration-[var(--dur-slow)] ease-[var(--ease-out)]"
           style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: color }}
         />
       </div>
@@ -250,7 +246,7 @@ export function BarRow({
 
 /** Shimmer block — compose these into page-shaped loading states. */
 export function Skeleton({ className = "", style }: { className?: string; style?: CSSProperties }) {
-  return <div className={`k-skeleton ${className}`} style={style} aria-hidden />;
+  return <div className={cn("k-skeleton", className)} style={style} aria-hidden />;
 }
 
 /** A whole page's worth of calm loading: header, KPI row, content block. */
@@ -265,7 +261,7 @@ export function PageSkeleton({ kpis = 4, table = true }: { kpis?: number; table?
       {kpis > 0 && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {Array.from({ length: kpis }).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-border bg-card p-[18px]" style={{ boxShadow: "var(--shadow-1)" }}>
+            <div key={i} className="rounded-[var(--radius-card)] border border-border bg-card p-[18px]" style={{ boxShadow: "var(--shadow-1)" }}>
               <Skeleton className="h-3 w-20" />
               <Skeleton className="mt-3 h-8 w-24" />
               <Skeleton className="mt-2.5 h-3 w-16" />
@@ -274,7 +270,7 @@ export function PageSkeleton({ kpis = 4, table = true }: { kpis?: number; table?
         </div>
       )}
       {table && (
-        <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-card" style={{ boxShadow: "var(--shadow-1)" }}>
+        <div className="mt-5 overflow-hidden rounded-[var(--radius-card)] border border-border bg-card" style={{ boxShadow: "var(--shadow-1)" }}>
           <div className="border-b border-border p-4">
             <Skeleton className="h-4 w-40" />
           </div>
@@ -307,10 +303,10 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-      <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-secondary text-ink-4">
+      <span className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-card)] bg-secondary text-ink-4">
         <Icon name={icon} size={22} />
       </span>
-      <div className="mt-1 text-[14px] font-semibold text-ink">{title}</div>
+      <div className="mt-1 text-heading font-semibold text-ink">{title}</div>
       {hint && <p className="max-w-[40ch] text-[12.5px] leading-relaxed text-ink-4">{hint}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>

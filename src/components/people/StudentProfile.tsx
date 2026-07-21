@@ -2,44 +2,22 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Card, Pill, Button, Divider } from "@/components/ui/primitives";
+import { Card, Pill, Divider } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
-import { useOffline } from "@/lib/offline/useOffline";
-import {
-  studentById,
-  niceClass,
-  effStatus,
-  getAcademics,
-  getAttendance,
-  getFeesLedger,
-  getHistory,
-  type Status,
-  type Student,
-} from "@/data/people";
-import { ngn } from "@/data/overview";
-import { deptIdOf, getDeptName } from "@/data/academics";
-import { usePromotions, getPromoHistory } from "@/lib/promotions/promotionsStore";
+import type { ProfileData } from "@/lib/students-profile";
 
-const STATUS_TONE: Record<Status, "green" | "blue" | "amber"> = { active: "green", graduated: "blue", left: "amber" };
-const STATUS_LABEL: Record<Status, string> = { active: "Active", graduated: "Graduated", left: "Left" };
+const STATUS_TONE = { active: "green", graduated: "blue", left: "amber" } as const;
+const STATUS_LABEL = { active: "Active", graduated: "Graduated", left: "Left" } as const;
 const TABS = ["Bio", "Guardians", "Academics", "Attendance", "Fees", "History"] as const;
 type Tab = (typeof TABS)[number];
 
-export function StudentProfile({ studentId }: { studentId: string }) {
-  usePromotions(); // re-render when promotions change
-  const s = studentById(studentId);
+const ngn = (n: number) => "₦" + n.toLocaleString("en-NG");
+
+export function StudentProfile({ data }: { data: ProfileData | null }) {
   const [tab, setTab] = useState<Tab>("Bio");
-  const { enqueue } = useOffline();
-  const [flash, setFlash] = useState<string | null>(null);
 
-  function action(label: string, type: string, payload: unknown) {
-    enqueue(type, payload);
-    setFlash(label);
-    setTimeout(() => setFlash(null), 2200);
-  }
-
-  if (!s) {
+  if (!data) {
     return (
       <div className="mx-auto max-w-[1040px]">
         <Link href="/people/students" className="text-[13px] font-medium text-forest hover:underline">
@@ -49,8 +27,7 @@ export function StudentProfile({ studentId }: { studentId: string }) {
       </div>
     );
   }
-
-  const outstanding = Math.max(0, s.termFee - s.paid);
+  const s = data;
 
   return (
     <div className="mx-auto max-w-[1080px]">
@@ -64,24 +41,19 @@ export function StudentProfile({ studentId }: { studentId: string }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">{s.name}</h1>
-            <Pill tone={STATUS_TONE[effStatus(s)]}>{STATUS_LABEL[effStatus(s)]}</Pill>
+            <Pill tone={STATUS_TONE[s.status]}>{STATUS_LABEL[s.status]}</Pill>
           </div>
           <div className="mt-1 text-[13px] text-ink-3">
-            {niceClass(s)} · {s.admissionNo} · admitted {s.admittedOn}
+            {s.className} · {s.admissionNo ?? "no admission no."} · admitted {s.admittedOn}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {flash && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-forest-soft px-2.5 py-1 text-[12px] font-medium text-forest">
-              <Icon name="check" size={13} /> {flash}
-            </span>
-          )}
-          <Button kind="ghost" size="sm" icon="arrowU" onClick={() => action("Promotion queued", "students.promote", { id: s.id })}>
-            Promote
-          </Button>
-          <Button kind="primary" size="sm" icon="fees" onClick={() => action("Payment recorded", "fees.recordPayment", { id: s.id })}>
-            Record payment
-          </Button>
+          <Link href="/people/promotions" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <Icon name="arrowU" size={15} /> Promote
+          </Link>
+          <Link href="/finance/fees" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+            <Icon name="fees" size={15} /> Record payment
+          </Link>
         </div>
       </Card>
 
@@ -91,9 +63,7 @@ export function StudentProfile({ studentId }: { studentId: string }) {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`relative px-3.5 py-2.5 text-[13px] font-medium transition ${
-              tab === t ? "text-forest" : "text-ink-3 hover:text-ink"
-            }`}
+            className={`relative px-3.5 py-2.5 text-[13px] font-medium transition ${tab === t ? "text-forest" : "text-ink-3 hover:text-ink"}`}
           >
             {t}
             {tab === t && <span className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-forest" />}
@@ -106,7 +76,7 @@ export function StudentProfile({ studentId }: { studentId: string }) {
         {tab === "Guardians" && <GuardiansTab s={s} />}
         {tab === "Academics" && <AcademicsTab s={s} />}
         {tab === "Attendance" && <AttendanceTab s={s} />}
-        {tab === "Fees" && <FeesTab s={s} outstanding={outstanding} />}
+        {tab === "Fees" && <FeesTab s={s} />}
         {tab === "History" && <HistoryTab s={s} />}
       </div>
     </div>
@@ -122,16 +92,16 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BioTab({ s }: { s: Student }) {
+function BioTab({ s }: { s: ProfileData }) {
   return (
     <Card>
       <div className="grid grid-cols-2 gap-x-8 gap-y-5 md:grid-cols-3">
         <Field label="Full name" value={s.name} />
-        <Field label="Gender" value={s.gender === "F" ? "Female" : "Male"} />
+        <Field label="Gender" value={s.gender === "F" ? "Female" : s.gender === "M" ? "Male" : "—"} />
         <Field label="Date of birth" value={s.dob} />
-        <Field label="Admission no." value={s.admissionNo} />
-        <Field label="Class" value={niceClass(s)} />
-        {s.level.startsWith("SSS") && <Field label="Department" value={getDeptName(deptIdOf(s))} />}
+        <Field label="Admission no." value={s.admissionNo ?? "—"} />
+        <Field label="Class" value={s.className} />
+        {s.isSenior && s.department && <Field label="Department" value={s.department} />}
         <Field label="Admitted" value={s.admittedOn} />
         <Field label="Status" value={STATUS_LABEL[s.status]} />
         {s.exitedOn && <Field label={s.status === "graduated" ? "Graduated" : "Left"} value={s.exitedOn} />}
@@ -141,42 +111,41 @@ function BioTab({ s }: { s: Student }) {
   );
 }
 
-function GuardiansTab({ s }: { s: Student }) {
+function GuardiansTab({ s }: { s: ProfileData }) {
+  if (!s.guardian) {
+    return (
+      <Card>
+        <p className="text-[13px] text-ink-4">No guardian on record for this student yet.</p>
+      </Card>
+    );
+  }
+  const g = s.guardian;
   return (
     <Card>
       <div className="flex items-center gap-3.5">
-        <Avatar name={s.guardianName} hue={(s.hue + 120) % 360} size={44} />
+        <Avatar name={g.name} hue={(s.hue + 120) % 360} size={44} />
         <div>
-          <div className="text-[15px] font-semibold text-ink">{s.guardianName}</div>
-          <div className="text-[12.5px] text-ink-4">{s.guardianRelation}</div>
+          <div className="text-[15px] font-semibold text-ink">{g.name}</div>
+          <div className="text-[12.5px] text-ink-4">{g.relation ?? "Guardian"}</div>
         </div>
       </div>
       <div className="my-5">
         <Divider />
       </div>
       <div className="grid grid-cols-2 gap-x-8 gap-y-5">
-        <Field label="Phone" value={s.guardianPhone} />
-        <Field label="Email" value={s.guardianEmail} />
+        <Field label="Phone" value={g.phone ?? "—"} />
+        <Field label="Email" value={g.email ?? "—"} />
       </div>
     </Card>
   );
 }
 
-function AcademicsTab({ s }: { s: Student }) {
-  const acad = getAcademics(s);
-  if (acad.kind === "developmental") {
+function AcademicsTab({ s }: { s: ProfileData }) {
+  const a = s.academics;
+  if (a.subjects.length === 0) {
     return (
       <Card>
-        <div className="mb-4 text-[14px] font-semibold text-ink">Developmental report</div>
-        <div className="flex flex-col">
-          {acad.skills.map((sk) => (
-            <div key={sk.label} className="flex items-center justify-between border-b border-border py-3 last:border-0">
-              <span className="text-[13px] font-medium text-ink">{sk.label}</span>
-              <Pill tone={sk.rating === "Excellent" ? "green" : sk.rating === "Developing" ? "amber" : "red"}>{sk.rating}</Pill>
-            </div>
-          ))}
-        </div>
-        <p className="mt-4 rounded-[12px] bg-secondary p-4 text-[13px] italic text-ink-3">“{acad.comment}”</p>
+        <p className="text-[13px] text-ink-4">No results recorded for this student this term yet.</p>
       </Card>
     );
   }
@@ -185,8 +154,8 @@ function AcademicsTab({ s }: { s: Student }) {
       <div className="flex items-center justify-between p-5">
         <div className="text-[14px] font-semibold text-ink">Current term results</div>
         <div className="flex gap-2">
-          <Pill tone="neutral">Average {acad.average}%</Pill>
-          <Pill tone="forest">Position {acad.position}</Pill>
+          <Pill tone="neutral">Average {a.average}%</Pill>
+          {a.position > 0 && <Pill tone="forest">Position {a.position} of {a.classSize}</Pill>}
         </div>
       </div>
       <table className="w-full border-collapse text-[13px]">
@@ -201,7 +170,7 @@ function AcademicsTab({ s }: { s: Student }) {
           </tr>
         </thead>
         <tbody>
-          {acad.subjects.map((r) => (
+          {a.subjects.map((r) => (
             <tr key={r.subject} className="border-b border-border last:border-0">
               <td className="px-5 py-3 font-medium text-ink">{r.subject}</td>
               <td className="px-3 py-3 text-right text-ink-3">{r.ca1}</td>
@@ -219,8 +188,8 @@ function AcademicsTab({ s }: { s: Student }) {
   );
 }
 
-function AttendanceTab({ s }: { s: Student }) {
-  const att = getAttendance(s);
+function AttendanceTab({ s }: { s: ProfileData }) {
+  const att = s.attendance;
   return (
     <Card>
       <div className="grid grid-cols-3 gap-4">
@@ -228,71 +197,88 @@ function AttendanceTab({ s }: { s: Student }) {
         <Stat label="Days late" value={String(att.late)} tone="amber" />
         <Stat label="Days absent" value={String(att.absent)} tone="red" />
       </div>
-      <div className="mt-5 text-[12px] font-medium text-ink-4">Last 10 school days</div>
-      <div className="mt-2 flex gap-1.5">
-        {att.recent.map((d, i) => (
-          <span
-            key={i}
-            title={d}
-            className="h-8 flex-1 rounded-[7px]"
-            style={{ background: d === "present" ? "var(--color-forest)" : d === "late" ? "var(--color-amber)" : "var(--color-red)" }}
-          />
-        ))}
-      </div>
+      {att.recent.length > 0 ? (
+        <>
+          <div className="mt-5 text-[12px] font-medium text-ink-4">Last {att.recent.length} school days</div>
+          <div className="mt-2 flex gap-1.5">
+            {att.recent.map((d, i) => (
+              <span
+                key={i}
+                title={d}
+                className="h-8 flex-1 rounded-[7px]"
+                style={{ background: d === "present" ? "var(--color-forest)" : d === "late" ? "var(--color-amber)" : "var(--color-red)" }}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="mt-5 text-[13px] text-ink-4">No attendance recorded yet.</p>
+      )}
     </Card>
   );
 }
 
-function FeesTab({ s, outstanding }: { s: Student; outstanding: number }) {
-  const ledger = getFeesLedger(s);
+function FeesTab({ s }: { s: ProfileData }) {
+  const f = s.fees;
   return (
     <Card pad={0} className="overflow-hidden">
       <div className="grid grid-cols-3 gap-4 p-5">
-        <Stat label="Term fee" value={ngn(s.termFee)} tone="neutral" />
-        <Stat label="Paid" value={ngn(s.paid)} tone="forest" />
-        <Stat label="Outstanding" value={ngn(outstanding)} tone={outstanding > 0 ? "red" : "forest"} />
+        <Stat label="Term fee" value={ngn(f.termFee)} tone="neutral" />
+        <Stat label="Paid" value={ngn(f.paid)} tone="forest" />
+        <Stat label="Outstanding" value={ngn(f.outstanding)} tone={f.outstanding > 0 ? "red" : "forest"} />
       </div>
-      <table className="w-full border-collapse text-[13px]">
-        <thead>
-          <tr className="border-y border-border text-[11px] uppercase tracking-[0.05em] text-ink-4">
-            <th className="px-5 py-2.5 text-left font-medium">Term</th>
-            <th className="px-3 py-2.5 text-right font-medium">Due</th>
-            <th className="px-3 py-2.5 text-right font-medium">Paid</th>
-            <th className="px-3 py-2.5 text-left font-medium">Method</th>
-            <th className="px-5 py-2.5 text-left font-medium">Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ledger.map((r, i) => (
-            <tr key={i} className="border-b border-border last:border-0">
-              <td className="px-5 py-3 font-medium text-ink">{r.term}</td>
-              <td className="px-3 py-3 text-right text-ink-3">{ngn(r.due)}</td>
-              <td className="px-3 py-3 text-right font-semibold text-ink">{ngn(r.paid)}</td>
-              <td className="px-3 py-3 text-ink-3">{r.method}</td>
-              <td className="px-5 py-3 text-ink-3">{r.date}</td>
+      {f.ledger.length > 0 ? (
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr className="border-y border-border text-[11px] uppercase tracking-[0.05em] text-ink-4">
+              <th className="px-5 py-2.5 text-left font-medium">Term</th>
+              <th className="px-3 py-2.5 text-right font-medium">Due</th>
+              <th className="px-3 py-2.5 text-right font-medium">Paid</th>
+              <th className="px-3 py-2.5 text-left font-medium">Method</th>
+              <th className="px-5 py-2.5 text-left font-medium">Date</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {f.ledger.map((r, i) => (
+              <tr key={i} className="border-b border-border last:border-0">
+                <td className="px-5 py-3 font-medium text-ink">{r.term}</td>
+                <td className="px-3 py-3 text-right text-ink-3">{ngn(r.due)}</td>
+                <td className="px-3 py-3 text-right font-semibold text-ink">{ngn(r.paid)}</td>
+                <td className="px-3 py-3 text-ink-3">{r.method}</td>
+                <td className="px-5 py-3 text-ink-3">{r.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="px-5 pb-5 text-[13px] text-ink-4">No invoices for this student yet.</p>
+      )}
     </Card>
   );
 }
 
-function HistoryTab({ s }: { s: Student }) {
-  const events = [...getPromoHistory(s.id), ...getHistory(s)];
+function HistoryTab({ s }: { s: ProfileData }) {
+  if (s.history.length === 0) {
+    return (
+      <Card>
+        <p className="text-[13px] text-ink-4">No history recorded yet.</p>
+      </Card>
+    );
+  }
   return (
     <Card>
       <div className="flex flex-col">
-        {events.map((e, i) => (
+        {s.history.map((e, i) => (
           <div key={i} className="flex gap-3.5">
             <div className="flex flex-col items-center">
               <span className="mt-1.5 h-2.5 w-2.5 rounded-full bg-forest ring-4 ring-forest-soft" />
-              {i < events.length - 1 && <span className="my-1 w-px flex-1 bg-border" />}
+              {i < s.history.length - 1 && <span className="my-1 w-px flex-1 bg-border" />}
             </div>
             <div className="pb-5">
               <div className="text-[13px] font-semibold text-ink">{e.title}</div>
               <div className="text-[12px] text-ink-4">
-                {e.date} · {e.meta}
+                {e.date}
+                {e.meta ? ` · ${e.meta}` : ""}
               </div>
             </div>
           </div>

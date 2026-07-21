@@ -114,10 +114,10 @@ export function RealStudents({ students, classes, canManage = true }: { students
                 {filtered.map((s) => (
                   <tr key={s.id} className="border-b border-border last:border-0 transition-colors hover:bg-secondary/50">
                     <td className="px-5 py-2.5">
-                      <div className="flex items-center gap-2.5">
+                      <Link href={`/people/students/${s.id}`} className="group flex items-center gap-2.5">
                         <Avatar name={s.name} hue={hueOf(s.id)} size={30} />
-                        <span className="font-medium text-ink">{s.name}</span>
-                      </div>
+                        <span className="font-medium text-ink group-hover:text-forest group-hover:underline">{s.name}</span>
+                      </Link>
                     </td>
                     <td className="px-5 py-2.5 text-ink-3">{s.admissionNo ?? "—"}</td>
                     <td className="px-5 py-2.5 text-ink-3">{s.gender === "F" ? "Female" : s.gender === "M" ? "Male" : "—"}</td>

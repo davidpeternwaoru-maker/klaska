@@ -1,11 +1,10 @@
 "use server";
 
-// Organisation-level controls: plan tier + multi-campus structure.
-// Owner only — this is the "Settings & billing: Owner Full" row of the matrix.
+// Organisation Server Actions — delegate to `orgService`, revalidate.
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth/session";
+import { requireCtx, ServiceError } from "@/server/context";
+import { orgService } from "@/server/services/org";
 
 export type OrgState = { ok?: boolean; error?: string };
 
@@ -15,57 +14,41 @@ function refresh() {
   revalidatePath("/");
 }
 
+async function run(fn: () => Promise<void>): Promise<OrgState> {
+  try {
+    await fn();
+    refresh();
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof ServiceError) return { error: e.message };
+    throw e;
+  }
+}
+
 export async function setTier(tier: string): Promise<OrgState> {
-  const user = await requireUser();
-  if (user.role !== "OWNER") return { error: "Only the owner changes the plan." };
-  if (!["BASIC", "ENTERPRISE"].includes(tier)) return { error: "Unknown plan." };
-  await prisma.school.update({ where: { id: user.schoolId }, data: { tier } });
-  refresh();
-  return { ok: true };
+  const ctx = await requireCtx();
+  return run(() => orgService.setTier(ctx, tier));
 }
 
 export async function toggleMultiCampus(on: boolean): Promise<OrgState> {
-  const user = await requireUser();
-  if (user.role !== "OWNER") return { error: "Only the owner changes campus structure." };
-  const school = await prisma.school.findUnique({ where: { id: user.schoolId }, select: { tier: true } });
-  if (on && school?.tier !== "ENTERPRISE") return { error: "Multi-campus is an Enterprise feature — switch plan first." };
-  await prisma.school.update({ where: { id: user.schoolId }, data: { multiCampus: on } });
-  refresh();
-  return { ok: true };
+  const ctx = await requireCtx();
+  return run(() => orgService.toggleMultiCampus(ctx, on));
 }
 
 export async function createCampus(_prev: OrgState, formData: FormData): Promise<OrgState> {
-  const user = await requireUser();
-  if (user.role !== "OWNER") return { error: "Only the owner manages campuses." };
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { error: "Campus name is required." };
-  try {
-    await prisma.campus.create({ data: { schoolId: user.schoolId, name } });
-  } catch {
-    return { error: `Campus "${name}" already exists.` };
-  }
-  refresh();
-  return { ok: true };
+  const ctx = await requireCtx();
+  return run(() => orgService.createCampus(ctx, String(formData.get("name") ?? "")));
 }
 
 export async function deleteCampus(formData: FormData): Promise<void> {
-  const user = await requireUser();
-  if (user.role !== "OWNER") return;
-  const id = String(formData.get("id") ?? "");
-  // Classes keep existing; their campusId goes null (SetNull).
-  if (id) await prisma.campus.deleteMany({ where: { id, schoolId: user.schoolId } });
+  const ctx = await requireCtx();
+  await orgService.deleteCampus(ctx, String(formData.get("id") ?? ""));
   refresh();
 }
 
 export async function assignClassCampus(classId: string, campusId: string | null): Promise<OrgState> {
-  const user = await requireUser();
-  if (user.role !== "OWNER") return { error: "Only the owner assigns campuses." };
-  if (campusId) {
-    const campus = await prisma.campus.findFirst({ where: { id: campusId, schoolId: user.schoolId } });
-    if (!campus) return { error: "Campus not found." };
-  }
-  await prisma.class.updateMany({ where: { id: classId, schoolId: user.schoolId }, data: { campusId } });
-  refresh();
+  const ctx = await requireCtx();
+  const res = await run(() => orgService.assignClassCampus(ctx, classId, campusId));
   revalidatePath("/people/classes");
-  return { ok: true };
+  return res;
 }

@@ -1,38 +1,21 @@
-import { requireUser } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
-import { classScope } from "@/lib/auth/scope";
+import { requireCtx } from "@/server/context";
+import { classesService } from "@/server/services/classes";
 import { canManageClasses } from "@/lib/auth/permissions";
 import { Card, Pill, SectionTitle } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
-import { ClassesManager, type ClassRow, type TeacherOption } from "@/components/dashboard/ClassesManager";
+import { ClassesManager } from "@/components/dashboard/ClassesManager";
 
 export const metadata = { title: "Classes · Klaska" };
 
 // Matrix: Owner/HOS manage classes. Teachers see ONLY their own classes,
 // read-only; Bursar/Admin see the list read-only.
 export default async function Page() {
-  const user = await requireUser();
+  const user = await requireCtx();
   const manage = canManageClasses(user.role);
 
-  const [classes, staff] = await Promise.all([
-    prisma.class.findMany({
-      where: classScope(user),
-      include: { teacher: true, _count: { select: { students: true } } },
-      orderBy: [{ name: "asc" }, { arm: "asc" }],
-    }),
-    manage ? prisma.staff.findMany({ where: { schoolId: user.schoolId }, orderBy: { name: "asc" } }) : Promise.resolve([]),
-  ]);
-
-  const rows: ClassRow[] = classes.map((c) => ({
-    id: c.id,
-    name: c.name,
-    arm: c.arm,
-    teacherName: c.teacher?.name ?? null,
-    studentCount: c._count.students,
-  }));
+  const [rows, teachers] = await Promise.all([classesService.list(user), classesService.teacherOptions(user)]);
 
   if (manage) {
-    const teachers: TeacherOption[] = staff.map((s) => ({ id: s.id, name: s.name }));
     return (
       <div className="mx-auto max-w-[1320px]">
         <SectionTitle eyebrow="People" title="Classes" sub="Your classes and arms, with form teachers and student counts." />

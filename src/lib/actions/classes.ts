@@ -1,52 +1,45 @@
 "use server";
 
-// Server actions for classes. A class has a name (level) and optional arm, and
-// can be assigned a form teacher (any staff member in the school).
+// Class Server Actions — parse FormData, delegate to `classesService`, revalidate.
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth/session";
-import { canManageClasses } from "@/lib/auth/permissions";
+import { requireCtx, ServiceError } from "@/server/context";
+import { classesService } from "@/server/services/classes";
 
 export type ActionState = { error?: string; ok?: boolean };
 
-export async function createClass(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
-  if (!canManageClasses(user.role)) return { error: "Only the owner or principal manages classes." };
-  const name = String(formData.get("name") ?? "").trim();
-  const arm = String(formData.get("arm") ?? "").trim() || null;
-  const teacherId = String(formData.get("teacherId") ?? "").trim() || null;
-  if (!name) return { error: "Class name is required (e.g. JSS 1)." };
-
-  if (teacherId) {
-    const teacher = await prisma.staff.findFirst({ where: { id: teacherId, schoolId: user.schoolId } });
-    if (!teacher) return { error: "Selected teacher was not found." };
-  }
-
-  try {
-    await prisma.class.create({ data: { schoolId: user.schoolId, name, arm, teacherId } });
-  } catch {
-    return { error: `Class "${name}${arm ? " " + arm : ""}" already exists.` };
-  }
+function revalidateClasses() {
   revalidatePath("/dashboard/classes");
   revalidatePath("/people/classes");
   revalidatePath("/dashboard");
+}
+
+export async function createClass(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await requireCtx();
+  try {
+    await classesService.create(ctx, {
+      name: String(formData.get("name") ?? ""),
+      arm: String(formData.get("arm") ?? ""),
+      teacherId: String(formData.get("teacherId") ?? ""),
+    });
+  } catch (e) {
+    if (e instanceof ServiceError) return { error: e.message };
+    throw e;
+  }
+  revalidateClasses();
   return { ok: true };
 }
 
-/** Rename a class (level name and/or arm, e.g. "JSS 1" + "Emerald"). */
 export async function updateClass(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
-  if (!canManageClasses(user.role)) return { error: "Only the owner or principal manages classes." };
-  const id = String(formData.get("id") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
-  const arm = String(formData.get("arm") ?? "").trim() || null;
-  if (!id || !name) return { error: "Class name is required." };
+  const ctx = await requireCtx();
   try {
-    const res = await prisma.class.updateMany({ where: { id, schoolId: user.schoolId }, data: { name, arm } });
-    if (res.count === 0) return { error: "Class not found." };
-  } catch {
-    return { error: `"${name}${arm ? " " + arm : ""}" already exists.` };
+    await classesService.update(ctx, String(formData.get("id") ?? ""), {
+      name: String(formData.get("name") ?? ""),
+      arm: String(formData.get("arm") ?? ""),
+    });
+  } catch (e) {
+    if (e instanceof ServiceError) return { error: e.message };
+    throw e;
   }
   revalidatePath("/dashboard/classes");
   revalidatePath("/people/classes");
@@ -56,13 +49,7 @@ export async function updateClass(_prev: ActionState, formData: FormData): Promi
 }
 
 export async function deleteClass(formData: FormData): Promise<void> {
-  const user = await requireUser();
-  if (!canManageClasses(user.role)) return;
-  const id = String(formData.get("id") ?? "");
-  // Students in a deleted class keep their record; their classId is set to null
-  // automatically (onDelete: SetNull in the schema).
-  if (id) await prisma.class.deleteMany({ where: { id, schoolId: user.schoolId } });
-  revalidatePath("/dashboard/classes");
-  revalidatePath("/people/classes");
-  revalidatePath("/dashboard");
+  const ctx = await requireCtx();
+  await classesService.remove(ctx, String(formData.get("id") ?? ""));
+  revalidateClasses();
 }

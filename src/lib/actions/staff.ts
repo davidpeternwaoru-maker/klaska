@@ -1,73 +1,53 @@
 "use server";
 
-// Server actions for staff. Adding a staff member also creates their login
-// (email + an initial password the owner sets), so they can sign in right away.
-// Only the OWNER or BURSAR may manage staff.
+// Staff Server Actions — parse FormData, delegate to `staffService`, revalidate.
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth/session";
-import { hashPassword } from "@/lib/auth/password";
-import { denyUnless, CAN_MANAGE_STAFF } from "@/lib/auth/guard";
-import type { Role } from "@/lib/auth/jwt";
+import { requireCtx, ServiceError } from "@/server/context";
+import { staffService } from "@/server/services/staff";
 
 export type ActionState = { error?: string; ok?: boolean };
 
-const ROLES: Role[] = ["OWNER", "HOS", "BURSAR", "HOD", "TEACHER", "ADMIN"];
-
-export async function createStaff(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
-  const denied = denyUnless(user, ...CAN_MANAGE_STAFF);
-  if (denied) return denied;
-
-  const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const title = String(formData.get("title") ?? "").trim() || null;
-  const phone = String(formData.get("phone") ?? "").trim() || null;
-  const password = String(formData.get("password") ?? "");
-  const roleRaw = String(formData.get("role") ?? "TEACHER");
-  const role: Role = ROLES.includes(roleRaw as Role) ? (roleRaw as Role) : "TEACHER";
-
-  if (!name || !email) return { error: "Name and email are required." };
-  if (password.length < 6) return { error: "Initial password must be at least 6 characters." };
-
-  const existing = await prisma.staff.findUnique({ where: { email } });
-  if (existing) return { error: "A staff member with that email already exists." };
-
-  await prisma.staff.create({
-    data: { schoolId: user.schoolId, name, email, title, phone, role, passwordHash: await hashPassword(password) },
-  });
+function revalidateStaff() {
   revalidatePath("/dashboard/staff");
   revalidatePath("/people/staff");
   revalidatePath("/dashboard");
+}
+
+export async function createStaff(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await requireCtx();
+  try {
+    await staffService.create(ctx, {
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      title: String(formData.get("title") ?? ""),
+      phone: String(formData.get("phone") ?? ""),
+      password: String(formData.get("password") ?? ""),
+      role: String(formData.get("role") ?? "TEACHER"),
+    });
+  } catch (e) {
+    if (e instanceof ServiceError) return { error: e.message };
+    throw e;
+  }
+  revalidateStaff();
   return { ok: true };
 }
 
 export async function deleteStaff(formData: FormData): Promise<void> {
-  const user = await requireUser();
-  if (denyUnless(user, ...CAN_MANAGE_STAFF)) return;
-  const id = String(formData.get("id") ?? "");
-  // Never let someone delete their own account (would lock them out).
-  if (id && id !== user.staffId) await prisma.staff.deleteMany({ where: { id, schoolId: user.schoolId } });
+  const ctx = await requireCtx();
+  await staffService.remove(ctx, String(formData.get("id") ?? ""));
   revalidatePath("/dashboard/staff");
   revalidatePath("/people/staff");
 }
 
-/** Owner/Bursar sets a new password for a staff member (no email needed). */
 export async function resetStaffPassword(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
-  const denied = denyUnless(user, ...CAN_MANAGE_STAFF);
-  if (denied) return denied;
-
-  const id = String(formData.get("id") ?? "");
-  const password = String(formData.get("password") ?? "");
-  if (password.length < 6) return { error: "New password must be at least 6 characters." };
-
-  const res = await prisma.staff.updateMany({
-    where: { id, schoolId: user.schoolId },
-    data: { passwordHash: await hashPassword(password) },
-  });
-  if (res.count === 0) return { error: "Staff member not found." };
+  const ctx = await requireCtx();
+  try {
+    await staffService.resetPassword(ctx, String(formData.get("id") ?? ""), String(formData.get("password") ?? ""));
+  } catch (e) {
+    if (e instanceof ServiceError) return { error: e.message };
+    throw e;
+  }
   revalidatePath("/dashboard/staff");
   revalidatePath("/people/staff");
   return { ok: true };

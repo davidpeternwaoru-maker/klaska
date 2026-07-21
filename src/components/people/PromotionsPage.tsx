@@ -1,33 +1,48 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Card, SectionTitle, Pill, Button } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
-import { promotionData, type PromoClass } from "@/data/promotions";
-import { niceClass, effLevel, type Student } from "@/data/people";
-import { usePromotions, recordPromotion, resetPromotions, hasPromotions, nextLevel, PROMO_SESSION } from "@/lib/promotions/promotionsStore";
+import type { PromotionsData, PromoClass } from "@/lib/promotions";
+import { promoteClassAction, promoteStudentsAction, runEndOfSessionAction } from "@/lib/actions/promotions";
 
 type Mode = "promote" | "hold" | "repeat";
 
-export function PromotionsPage() {
-  const promo = usePromotions();
-  const d = useMemo(() => promotionData(), [promo]);
+export function PromotionsPage({ data: d }: { data: PromotionsData }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
   const [modes, setModes] = useState<Record<string, Mode>>({});
   const [review, setReview] = useState<PromoClass | null>(null);
-  const sessionDone = hasPromotions();
+  const [flash, setFlash] = useState<string | null>(null);
 
-  const modeOf = (klass: string): Mode => modes[klass] ?? "promote";
+  const modeOf = (classId: string): Mode => modes[classId] ?? "promote";
+  const done = (msg: string) => {
+    setFlash(msg);
+    setTimeout(() => setFlash(null), 2600);
+    router.refresh();
+  };
 
   function applyClass(c: PromoClass, mode: Mode) {
     if (mode === "hold") return;
-    if (typeof window !== "undefined" && !window.confirm(`${mode === "repeat" ? "Repeat" : "Promote"} all ${c.count} students in ${c.klass}?`)) return;
-    c.students.forEach((s) => recordPromotion(s.id, effLevel(s), s.arm, mode === "repeat" ? "repeat" : "promote"));
+    if (typeof window !== "undefined" && !window.confirm(`${mode === "repeat" ? "Repeat" : c.next === "Graduated" ? "Graduate" : "Promote"} all ${c.count} students in ${c.klass}?`)) return;
+    start(async () => {
+      const r = await promoteClassAction(c.classId, mode === "repeat" ? "repeat" : "promote");
+      done(r.error ? r.error : `${c.klass}: ${r.count} student${r.count === 1 ? "" : "s"} ${mode === "repeat" ? "held back" : c.next === "Graduated" ? "graduated" : "promoted"}.`);
+    });
   }
+
   function runEndOfSession() {
     if (typeof window !== "undefined" && !window.confirm(`Run end-of-session for all ${d.totalActive} students? Each advances one class; the SSS 3 cohort graduates.`)) return;
-    d.classes.forEach((c) => c.students.forEach((s) => recordPromotion(s.id, effLevel(s), s.arm, modeOf(c.klass) === "repeat" ? "repeat" : "promote")));
+    const modeMap: Record<string, "promote" | "repeat"> = {};
+    d.classes.forEach((c) => (modeMap[c.classId] = modeOf(c.classId) === "repeat" ? "repeat" : "promote"));
+    start(async () => {
+      const r = await runEndOfSessionAction(modeMap);
+      done(r.error ? r.error : `End-of-session complete — ${r.count} students processed.`);
+    });
   }
+
   function exportPlan() {
     const rows = [["Class", "Teacher", "Students", "Class avg %", "At risk", "Advances to"]];
     d.classes.forEach((c) => rows.push([c.klass, c.teacher, String(c.count), String(c.avg), String(c.atRisk), c.next]));
@@ -45,19 +60,15 @@ export function PromotionsPage() {
       <SectionTitle
         eyebrow="Class Progression"
         title="End-of-session promotions"
-        sub="Promote students up the JSS → SSS ladder. Every promotion is recorded in the student's full history."
+        sub="Promote students up the ladder. Every promotion is recorded in the student's history and moves them into the next class."
         right={
           <>
-            {sessionDone && (
-              <Button kind="ghost" size="sm" icon="refresh" onClick={() => resetPromotions()}>
-                Undo all
-              </Button>
-            )}
-            <Button kind="ghost" size="sm" icon="download" onClick={exportPlan}>
+            {flash && <span className="hidden items-center gap-1 rounded-full bg-forest-soft px-2.5 py-1 text-[12px] font-medium text-forest sm:inline-flex"><Icon name="check" size={13} /> {flash}</span>}
+            <Button kind="ghost" size="sm" icon="download" onClick={exportPlan} disabled={pending}>
               Export plan
             </Button>
-            <Button kind="primary" size="sm" icon="sparkle" onClick={runEndOfSession}>
-              Run end-of-session
+            <Button kind="primary" size="sm" icon="sparkle" onClick={runEndOfSession} disabled={pending}>
+              {pending ? "Working…" : "Run end-of-session"}
             </Button>
           </>
         }
@@ -69,66 +80,65 @@ export function PromotionsPage() {
           <Icon name="arrowU" size={22} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-semibold text-ink">End of {PROMO_SESSION} session approaches</div>
+          <div className="text-[15px] font-semibold text-ink">End of {d.session} session</div>
           <div className="text-[12.5px] text-ink-4">
-            In 4 weeks, eligible students move up one class. SSS 3 cohort graduates. Repeated students stay in their current class — all recorded.
+            Eligible students move up one class; the SSS 3 cohort graduates to alumni. Repeated students stay in their current class — all recorded in history.
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Pill tone="green">
-            <Icon name="check" size={12} /> {d.eligible} eligible
-          </Pill>
-          <Pill tone="amber">
-            <Icon name="clock" size={12} /> {d.toReview} to review
-          </Pill>
-          <Pill tone="blue">
-            <Icon name="badge" size={12} /> {d.graduating} graduating
-          </Pill>
+          <Pill tone="green"><Icon name="check" size={12} /> {d.eligible} eligible</Pill>
+          <Pill tone="amber"><Icon name="clock" size={12} /> {d.toReview} to review</Pill>
+          <Pill tone="blue"><Icon name="badge" size={12} /> {d.graduating} graduating</Pill>
         </div>
       </Card>
 
-      {/* class cards */}
-      <div className="k-stagger grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {d.classes.map((c) => {
-          const mode = modeOf(c.klass);
-          const grad = c.next === "Graduated";
-          return (
-            <Card key={c.klass} pad={20}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-display text-[16px] font-semibold text-ink">{c.klass}</div>
-                  <div className="truncate text-[12.5px] text-ink-4">{c.teacher}</div>
+      {d.classes.length === 0 ? (
+        <Card className="text-center">
+          <p className="py-6 text-[13px] text-ink-4">No active classes to promote yet.</p>
+        </Card>
+      ) : (
+        <div className="k-stagger grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {d.classes.map((c) => {
+            const mode = modeOf(c.classId);
+            const grad = c.next === "Graduated";
+            return (
+              <Card key={c.classId} pad={20}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-display text-[16px] font-semibold text-ink">{c.klass}</div>
+                    <div className="truncate text-[12.5px] text-ink-4">{c.teacher}</div>
+                  </div>
+                  <ModeSegment value={mode} onChange={(m) => setModes((p) => ({ ...p, [c.classId]: m }))} />
                 </div>
-                <ModeSegment value={mode} onChange={(m) => setModes((p) => ({ ...p, [c.klass]: m }))} />
-              </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <Stat label="Students" value={String(c.count)} />
-                <Stat label="Class avg" value={`${c.avg}%`} tone="forest" />
-                <Stat label="At risk" value={String(c.atRisk)} tone={c.atRisk ? "red" : undefined} />
-              </div>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <Stat label="Students" value={String(c.count)} />
+                  <Stat label="Class avg" value={`${c.avg}%`} tone="forest" />
+                  <Stat label="At risk" value={String(c.atRisk)} tone={c.atRisk ? "red" : undefined} />
+                </div>
 
-              <div className="mt-3.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                <div className="h-full rounded-full bg-forest" style={{ width: `${(c.eligible / c.count) * 100}%` }} />
-              </div>
-              <div className="mt-2 text-[12px] text-ink-4">
-                <b className="text-ink">{c.eligible}</b> eligible to {grad ? "graduate" : "advance"} · <b className="text-ink">{c.atRisk}</b> flagged for review
-              </div>
+                <div className="mt-3.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+                  <div className="h-full rounded-full bg-forest" style={{ width: `${(c.eligible / c.count) * 100}%` }} />
+                </div>
+                <div className="mt-2 text-[12px] text-ink-4">
+                  <b className="text-ink">{c.eligible}</b> eligible to {grad ? "graduate" : "advance"} · <b className="text-ink">{c.atRisk}</b> flagged for review
+                </div>
 
-              <div className="mt-4 flex gap-2">
-                <Button kind="ghost" size="sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => setReview(c)}>
-                  Review students
-                </Button>
-                <Button kind="primary" size="sm" style={{ flex: 1, justifyContent: "center" }} icon={mode === "repeat" ? "minus" : grad ? "badge" : "arrowU"} onClick={() => applyClass(c, mode)}>
-                  {mode === "repeat" ? "Repeat class" : grad ? "Graduate class" : "Promote class"}
-                </Button>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+                <div className="mt-4 flex gap-2">
+                  <Button kind="ghost" size="sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => setReview(c)} disabled={pending}>
+                    Review students
+                  </Button>
+                  <Button kind="primary" size="sm" style={{ flex: 1, justifyContent: "center" }} icon={mode === "repeat" ? "minus" : grad ? "badge" : "arrowU"} onClick={() => applyClass(c, mode)} disabled={pending}>
+                    {mode === "repeat" ? "Repeat class" : grad ? "Graduate class" : "Promote class"}
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
-      {review && <ReviewModal cls={review} onClose={() => setReview(null)} />}
+      {review && <ReviewModal cls={review} pending={pending} onClose={() => setReview(null)} onApply={(items) => start(async () => { const r = await promoteStudentsAction(items); done(r.error ? r.error : `${review.klass}: ${r.count} students updated.`); setReview(null); })} />}
     </div>
   );
 }
@@ -168,14 +178,10 @@ function ModeSegment({ value, onChange }: { value: Mode; onChange: (m: Mode) => 
   );
 }
 
-function ReviewModal({ cls, onClose }: { cls: PromoClass; onClose: () => void }) {
+function ReviewModal({ cls, pending, onClose, onApply }: { cls: PromoClass; pending: boolean; onClose: () => void; onApply: (items: { studentId: string; mode: "promote" | "repeat" }[]) => void }) {
   const [choice, setChoice] = useState<Record<string, "promote" | "repeat">>({});
   const choiceOf = (id: string) => choice[id] ?? "promote";
   const grad = cls.next === "Graduated";
-  function apply() {
-    cls.students.forEach((s) => recordPromotion(s.id, effLevel(s), s.arm, choiceOf(s.id)));
-    onClose();
-  }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="flex max-h-[86vh] w-full max-w-[620px] flex-col overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-3)]" onClick={(e) => e.stopPropagation()}>
@@ -191,14 +197,14 @@ function ReviewModal({ cls, onClose }: { cls: PromoClass; onClose: () => void })
           </button>
         </div>
         <div className="overflow-y-auto">
-          {cls.students.map((s: Student) => {
+          {cls.students.map((s) => {
             const ch = choiceOf(s.id);
             return (
               <div key={s.id} className="flex items-center gap-3 border-b border-border px-5 py-2.5 last:border-0">
                 <Avatar name={s.name} hue={s.hue} size={32} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-medium text-ink">{s.name}</span>
-                  <span className="block text-[11.5px] text-ink-4">{niceClass(s)}</span>
+                  <span className="block text-[11.5px] text-ink-4">{cls.klass}</span>
                 </span>
                 <div className="flex gap-1 rounded-[10px] bg-secondary p-1">
                   {(["promote", "repeat"] as const).map((opt) => (
@@ -220,8 +226,8 @@ function ReviewModal({ cls, onClose }: { cls: PromoClass; onClose: () => void })
           <Button kind="ghost" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button kind="primary" size="sm" icon="check" onClick={apply}>
-            Apply to {cls.count} students
+          <Button kind="primary" size="sm" icon="check" disabled={pending} onClick={() => onApply(cls.students.map((s) => ({ studentId: s.id, mode: choiceOf(s.id) })))}>
+            {pending ? "Applying…" : `Apply to ${cls.count} students`}
           </Button>
         </div>
       </div>

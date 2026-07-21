@@ -1,17 +1,16 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
+import { requireCtx } from "@/server/context";
+import { resultsService } from "@/server/services/results";
 import { SectionTitle } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
-import { SubjectsManager, type SubjectRow } from "@/components/dashboard/SubjectsManager";
+import { SubjectsManager } from "@/components/dashboard/SubjectsManager";
 
 export const metadata = { title: "Subjects · Klaska" };
 
 // Subjects manager — inside the main Klaska shell.
 export default async function Page() {
-  const user = await requireUser();
-  const subjects = await prisma.subject.findMany({ where: { schoolId: user.schoolId }, orderBy: { name: "asc" } });
-  const rows: SubjectRow[] = subjects.map((s) => ({ id: s.id, name: s.name, code: s.code }));
+  const user = await requireCtx();
+  const rows = await resultsService.subjects(user);
 
   return (
     <div className="mx-auto max-w-[1100px]">

@@ -1,40 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
+import { requireCtx } from "@/server/context";
 import { canManageStudents } from "@/lib/auth/permissions";
-import { prisma } from "@/lib/db";
+import { studentsService } from "@/server/services/students";
 import { SectionTitle } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
-import { StudentsManager, type StudentRow, type ClassOption } from "@/components/dashboard/StudentsManager";
+import { StudentsManager } from "@/components/dashboard/StudentsManager";
 
 export const metadata = { title: "Manage students · Klaska" };
 
-function classLabel(c: { name: string; arm: string | null }) {
-  return c.arm ? `${c.name} ${c.arm}` : c.name;
-}
-
 // Add / edit / remove students — inside the main Klaska shell.
 export default async function Page() {
-  const user = await requireUser();
+  const user = await requireCtx();
   if (!canManageStudents(user.role)) redirect("/people/students");
-  const [students, classes] = await Promise.all([
-    prisma.student.findMany({ where: { schoolId: user.schoolId }, include: { class: true }, orderBy: { createdAt: "desc" } }),
-    prisma.class.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),
-  ]);
-
-  const rows: StudentRow[] = students.map((s) => ({
-    id: s.id,
-    firstName: s.firstName,
-    lastName: s.lastName,
-    admissionNo: s.admissionNo,
-    gender: s.gender,
-    dob: s.dob ? s.dob.toISOString().slice(0, 10) : null,
-    guardianName: s.guardianName,
-    guardianPhone: s.guardianPhone,
-    classId: s.classId,
-    className: s.class ? classLabel(s.class) : null,
-  }));
-  const classOptions: ClassOption[] = classes.map((c) => ({ id: c.id, label: classLabel(c) }));
+  const { students: rows, classes: classOptions } = await studentsService.manageRows(user);
 
   return (
     <div className="mx-auto max-w-[1100px]">

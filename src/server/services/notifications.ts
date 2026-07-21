@@ -12,7 +12,21 @@ const requireMessaging = (ctx: Ctx) => {
   if (!CAN_MANAGE_STAFF.includes(ctx.role)) throw new ServiceError("You don't have permission to do that.");
 };
 
+export type NoticeRow = { id: string; audience: string; title: string | null; body: string; sentBy: string; when: string };
+
 export const notificationsService = {
+  async list(ctx: Ctx): Promise<NoticeRow[]> {
+    const notices = await prisma.notice.findMany({ where: { schoolId: ctx.schoolId }, orderBy: { createdAt: "desc" }, take: 50 });
+    return notices.map((n) => ({
+      id: n.id,
+      audience: n.audience,
+      title: n.title,
+      body: n.body,
+      sentBy: n.sentBy,
+      when: n.createdAt.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
+    }));
+  },
+
   async sendNotice(ctx: Ctx, input: { audience: string; title?: string | null; body: string }): Promise<void> {
     requireMessaging(ctx);
     if (!(AUDIENCES as readonly string[]).includes(input.audience)) throw new ServiceError("Pick who to message.", "INVALID");

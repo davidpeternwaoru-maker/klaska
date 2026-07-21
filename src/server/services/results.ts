@@ -107,6 +107,11 @@ export const resultsService = {
   },
 
   // ── subjects ──
+  async subjects(ctx: Ctx): Promise<{ id: string; name: string; code: string | null }[]> {
+    const rows = await prisma.subject.findMany({ where: { schoolId: ctx.schoolId }, orderBy: { name: "asc" } });
+    return rows.map((s) => ({ id: s.id, name: s.name, code: s.code }));
+  },
+
   async createSubject(ctx: Ctx, input: { name: string; code?: string | null }): Promise<void> {
     if (!canManageSubjects(ctx.role)) throw new ServiceError("Only the owner or principal manages subjects.");
     const name = input.name?.trim();

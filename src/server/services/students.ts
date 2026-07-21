@@ -29,6 +29,19 @@ export type StudentRow = {
   className: string | null;
 };
 
+export type StudentManageRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  admissionNo: string | null;
+  gender: string | null;
+  dob: string | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  classId: string | null;
+  className: string | null;
+};
+
 export type ImportRow = {
   firstName: string;
   lastName: string;
@@ -95,6 +108,30 @@ export const studentsService = {
       classId: s.classId,
       className: s.class ? classLabel(s.class) : null,
     }));
+  },
+
+  /** Full editable rows for the "manage students" screen (managers only). */
+  async manageRows(ctx: Ctx): Promise<{ students: StudentManageRow[]; classes: { id: string; label: string }[] }> {
+    requireManage(ctx);
+    const [students, classes] = await Promise.all([
+      prisma.student.findMany({ where: { schoolId: ctx.schoolId }, include: { class: true }, orderBy: { createdAt: "desc" } }),
+      prisma.class.findMany({ where: { schoolId: ctx.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),
+    ]);
+    return {
+      students: students.map((s) => ({
+        id: s.id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        admissionNo: s.admissionNo,
+        gender: s.gender,
+        dob: s.dob ? s.dob.toISOString().slice(0, 10) : null,
+        guardianName: s.guardianName,
+        guardianPhone: s.guardianPhone,
+        classId: s.classId,
+        className: s.class ? classLabel(s.class) : null,
+      })),
+      classes: classes.map((c) => ({ id: c.id, label: classLabel(c) })),
+    };
   },
 
   /** Classes selectable for this ctx (teachers → their own). */

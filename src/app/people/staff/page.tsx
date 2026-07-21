@@ -1,10 +1,10 @@
-import { requireCtx } from "@/server/context";
+import { requireAccess } from "@/server/context";
 import { staffService } from "@/server/services/staff";
 import { SectionTitle } from "@/components/ui/primitives";
 import { StaffManager } from "@/components/dashboard/StaffManager";
 
 export default async function Page() {
-  const ctx = await requireCtx();
+  const ctx = await requireAccess("staff");
   const rows = await staffService.list(ctx);
 
   return (

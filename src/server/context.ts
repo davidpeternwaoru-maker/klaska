@@ -6,6 +6,7 @@ import "server-only";
 // Server Components (reads) and Server Actions (writes) — never re-implement
 // those rules. This module is the one door into the data layer.
 
+import { redirect } from "next/navigation";
 import { requireUser, getCurrentUser } from "@/lib/auth/session";
 import { canView, canManage, scopeOf, type Area } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/jwt";
@@ -42,6 +43,15 @@ export function requireCan(ctx: Ctx, area: Area, access: Access = "view"): void 
   if (!can(ctx, area, access)) {
     throw new ServiceError(`Your role (${ctx.role}) cannot ${access} ${area}.`, "FORBIDDEN");
   }
+}
+
+/** Page guard: require login AND matrix access to an area, else redirect home.
+ *  Use at the top of a protected page instead of hand-rolling canView + redirect.
+ *  (The edge middleware enforces the same rule; this is defence-in-depth.) */
+export async function requireAccess(area: Area, access: Access = "view"): Promise<Ctx> {
+  const ctx = await requireCtx();
+  if (!can(ctx, area, access)) redirect("/");
+  return ctx;
 }
 
 /** The tenant filter that belongs in every query's `where`. */

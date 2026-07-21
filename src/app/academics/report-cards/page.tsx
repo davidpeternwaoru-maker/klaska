@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireCtx } from "@/server/context";
-import { canView } from "@/lib/auth/permissions";
+import { requireAccess } from "@/server/context";
 import { reportCardsService } from "@/server/services/academics";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { ReportCardsBrowser } from "@/components/academics/ReportCardsBrowser";
@@ -11,8 +10,7 @@ export const metadata = { title: "Report Cards · Klaska" };
 
 // Real report cards, generated from the school's own results (Flow 3).
 export default async function Page({ searchParams }: { searchParams: Promise<{ classId?: string }> }) {
-  const user = await requireCtx();
-  if (!canView(user.role, "results")) redirect("/");
+  const user = await requireAccess("results");
   const sp = await searchParams;
 
   const { classOptions, classId, data } = await reportCardsService.view(user, sp.classId);

@@ -1,4 +1,4 @@
-import { requireCtx } from "@/server/context";
+import { requireAccess } from "@/server/context";
 import { notificationsService } from "@/server/services/notifications";
 import { SectionTitle } from "@/components/ui/primitives";
 import { NotificationsCenter } from "@/components/dashboard/NotificationsCenter";
@@ -6,7 +6,7 @@ import { NotificationsCenter } from "@/components/dashboard/NotificationsCenter"
 export const metadata = { title: "Notifications · Klaska" };
 
 export default async function Page() {
-  const user = await requireCtx();
+  const user = await requireAccess("notifications");
   const rows = await notificationsService.list(user);
 
   return (

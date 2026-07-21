@@ -1,10 +1,7 @@
-import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
-import { canView } from "@/lib/auth/permissions";
+import { requireAccess } from "@/server/context";
 import { FinancingPage } from "@/components/finance/FinancingPage";
 
 export default async function Page() {
-  const user = await requireUser();
-  if (!canView(user.role, "financial")) redirect("/");
+  await requireAccess("financial");
   return <FinancingPage />;
 }

@@ -1,6 +1,4 @@
-import { redirect } from "next/navigation";
-import { requireCtx } from "@/server/context";
-import { canView } from "@/lib/auth/permissions";
+import { requireAccess } from "@/server/context";
 import { aiService } from "@/server/services/academics";
 import { Card } from "@/components/ui/primitives";
 import Link from "next/link";
@@ -13,8 +11,7 @@ export const metadata = { title: "AI Outcomes Engine · Klaska" };
 // attendance, exam-class readiness, and concrete intervention suggestions.
 // Teachers see their own classes only (classScope inside the builder).
 export default async function Page() {
-  const user = await requireCtx();
-  if (!canView(user.role, "ai")) redirect("/");
+  const user = await requireAccess("ai");
 
   const { locked, a } = await aiService.view(user);
   // Tiering: the AI engine is an Enterprise module (feature flag).

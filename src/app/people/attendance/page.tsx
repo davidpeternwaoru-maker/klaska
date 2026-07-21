@@ -1,4 +1,4 @@
-import { requireCtx } from "@/server/context";
+import { requireAccess } from "@/server/context";
 import { attendanceService } from "@/server/services/attendance";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { AttendanceControls } from "@/components/dashboard/AttendanceControls";
@@ -10,7 +10,7 @@ export default async function Page({
 }: {
   searchParams: Promise<{ classId?: string; date?: string }>;
 }) {
-  const ctx = await requireCtx();
+  const ctx = await requireAccess("attendance");
   const sp = await searchParams;
   const date = sp.date || new Date().toISOString().slice(0, 10);
   const { hasClasses, classOptions, classId, students, existing, canMark } = await attendanceService.marker(ctx, { classId: sp.classId, date });

@@ -1,4 +1,4 @@
-import { requireCtx } from "@/server/context";
+import { requireAccess } from "@/server/context";
 import { classesService } from "@/server/services/classes";
 import { canManageClasses } from "@/lib/auth/permissions";
 import { Card, Pill, SectionTitle } from "@/components/ui/primitives";
@@ -10,7 +10,7 @@ export const metadata = { title: "Classes · Klaska" };
 // Matrix: Owner/HOS manage classes. Teachers see ONLY their own classes,
 // read-only; Bursar/Admin see the list read-only.
 export default async function Page() {
-  const user = await requireCtx();
+  const user = await requireAccess("students");
   const manage = canManageClasses(user.role);
 
   const [rows, teachers] = await Promise.all([classesService.list(user), classesService.teacherOptions(user)]);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireCtx } from "@/server/context";
+import { requireAccess } from "@/server/context";
 import { resultsService } from "@/server/services/results";
 import { SectionTitle } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
@@ -9,7 +9,7 @@ export const metadata = { title: "Subjects · Klaska" };
 
 // Subjects manager — inside the main Klaska shell.
 export default async function Page() {
-  const user = await requireCtx();
+  const user = await requireAccess("results");
   const rows = await resultsService.subjects(user);
 
   return (

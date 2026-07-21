@@ -1,45 +1,48 @@
-// Middleware runs on the edge BEFORE a matched request reaches a page. We use
-// it as the front-door bouncer for auth:
-//   • Not logged in and visiting /dashboard/*  → send to /login
-//   • Already logged in and visiting /login|/signup → send to /dashboard
-// It only verifies the token's signature (fast, no database). Pages still do
-// their own requireUser() check as defence-in-depth.
+// Middleware runs on the edge BEFORE any page code. It is the authoritative
+// front-door gate for auth AND role visibility:
+//   • Not logged in on any app route            → /login
+//   • Logged in on /login or /signup            → /
+//   • Logged in but the role can't see this area → / (per the Permission Matrix)
+// It only verifies the token's signature + checks the pure matrix (fast, no DB).
+// Pages call requireAccess() and services call requireCan() as defence-in-depth.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyToken, SESSION_COOKIE } from "@/lib/auth/jwt";
+import { canView } from "@/lib/auth/permissions";
+import { areaForPath } from "@/lib/auth/access";
+
+const AUTH_PAGES = new Set(["/login", "/signup"]);
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const user = token ? await verifyToken(token) : null;
 
-  const isProtected = pathname === "/" || pathname.startsWith("/dashboard");
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
-
-  if (isProtected && !user) {
+  const redirectTo = (path: string) => {
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = path;
+    url.search = "";
     return NextResponse.redirect(url);
+  };
+
+  // Auth pages: bounce signed-in users into the app; let others through.
+  if (AUTH_PAGES.has(pathname)) {
+    return user ? redirectTo("/") : NextResponse.next();
   }
 
-  if (isAuthPage && user) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
-  }
+  // Every other matched route is protected.
+  if (!user) return redirectTo("/login");
 
-  // Permission Matrix at the front door: money is invisible to teachers and
-  // admin officers — a hard 307 before any page code runs.
-  if (user && pathname.startsWith("/finance") && (user.role === "TEACHER" || user.role === "ADMIN")) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
-  }
+  // Role visibility straight from the matrix — a hard redirect before page code.
+  const area = areaForPath(pathname);
+  if (area && !canView(user.role, area)) return redirectTo("/");
 
   return NextResponse.next();
 }
 
-// Only run middleware on these paths (keeps it off static assets etc.).
+// Run on all app routes except Next internals, the API, and static files
+// (anything with a file extension). This covers /, /people/*, /academics/*,
+// /finance/*, /settings/*, /insights, /onboarding, /account/*, /login, /signup.
 export const config = {
-  matcher: ["/", "/dashboard/:path*", "/finance/:path*", "/login", "/signup"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

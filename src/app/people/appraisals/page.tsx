@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
-import { canView, canManage } from "@/lib/auth/permissions";
+import { requireAccess } from "@/server/context";
+import { canManage } from "@/lib/auth/permissions";
 import { Card, Pill, SectionTitle } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { AppraisalsPage } from "@/components/people/AppraisalsPage";
@@ -11,8 +10,7 @@ export const metadata = { title: "Appraisals · Klaska" };
 
 // Matrix: Owner ALL · HOS ALL · HOD teaching staff · Teacher OWN ONLY · Bursar/Admin —.
 export default async function Page() {
-  const user = await requireUser();
-  if (!canView(user.role, "appraisals")) redirect("/");
+  const user = await requireAccess("appraisals");
 
   // Teachers see only their own appraisal — never the whole board.
   if (user.role === "TEACHER") {

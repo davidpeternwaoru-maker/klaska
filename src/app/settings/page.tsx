@@ -1,4 +1,4 @@
-import { requireCtx } from "@/server/context";
+import { requireAccess } from "@/server/context";
 import { setupService } from "@/server/services/setup";
 import { SectionTitle } from "@/components/ui/primitives";
 import { SettingsTabs } from "@/components/dashboard/SettingsTabs";
@@ -6,7 +6,7 @@ import { SettingsTabs } from "@/components/dashboard/SettingsTabs";
 // Real school settings, inside the main (polished) app shell — profile & branding,
 // session & term, sections, grading and per-class fees. All data via setupService.
 export default async function Page() {
-  const user = await requireCtx();
+  const user = await requireAccess("settings");
   const v = await setupService.settingsView(user);
   if (!v) return null;
 

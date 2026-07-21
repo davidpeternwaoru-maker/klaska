@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { requireCtx } from "@/server/context";
+import { requireAccess } from "@/server/context";
 import { resultsService } from "@/server/services/results";
-import { canView } from "@/lib/auth/permissions";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { ResultsControls } from "@/components/dashboard/ResultsControls";
 import { ResultsGrid } from "@/components/dashboard/ResultsGrid";
@@ -14,8 +12,7 @@ export default async function Page({
 }: {
   searchParams: Promise<{ classId?: string; subjectId?: string }>;
 }) {
-  const user = await requireCtx();
-  if (!canView(user.role, "results")) redirect("/");
+  const user = await requireAccess("results");
   const sp = await searchParams;
 
   const { hasClasses, hasSubjects, classOptions, subjectOptions, classId, subjectId, students, existing, canEnter } = await resultsService.grid(user, {

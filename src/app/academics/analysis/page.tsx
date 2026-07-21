@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { requireCtx } from "@/server/context";
-import { canView } from "@/lib/auth/permissions";
+import { requireAccess } from "@/server/context";
 import { analysisService } from "@/server/services/academics";
 import { SectionTitle } from "@/components/ui/primitives";
 import { AnalysisView } from "@/components/academics/AnalysisView";
@@ -9,8 +7,7 @@ import { AnalysisView } from "@/components/academics/AnalysisView";
 export const metadata = { title: "Report Analysis · Klaska" };
 
 export default async function Page() {
-  const user = await requireCtx();
-  if (!canView(user.role, "results")) redirect("/");
+  const user = await requireAccess("results");
 
   const { a, meta } = await analysisService.view(user);
 

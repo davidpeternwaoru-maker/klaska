@@ -1,23 +1,18 @@
 "use server";
 
-// Server actions for students. Every action calls requireUser() first, then
-// scopes all reads/writes to that user's schoolId — so a school can only ever
-// touch its own records. revalidatePath() refreshes the page after a change.
+// Student Server Actions — the HTTP edge for the browser. They parse FormData,
+// delegate all persistence + permission/tenant rules to `studentsService`
+// (the single source of truth), then revalidate the affected pages.
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth/session";
-import { canManageStudents } from "@/lib/auth/permissions";
+import { requireCtx, ServiceError } from "@/server/context";
+import { studentsService, type StudentInput, type ImportRow } from "@/server/services/students";
 
 export type ActionState = { error?: string; ok?: boolean };
+export type ImportResult = { created: number; classesCreated: string[]; skipped: number; error?: string };
+export type { ImportRow };
 
-/** Generate the next admission number for a school, e.g. KLK-0001. */
-async function nextAdmissionNo(schoolId: string): Promise<string> {
-  const count = await prisma.student.count({ where: { schoolId } });
-  return `KLK-${String(count + 1).padStart(4, "0")}`;
-}
-
-function readForm(formData: FormData) {
+function readForm(formData: FormData): StudentInput {
   return {
     firstName: String(formData.get("firstName") ?? "").trim(),
     lastName: String(formData.get("lastName") ?? "").trim(),
@@ -30,221 +25,51 @@ function readForm(formData: FormData) {
   };
 }
 
-/** Confirm a class id (if given) actually belongs to this school. */
-async function classBelongs(schoolId: string, classId: string | null) {
-  if (!classId) return true;
-  return !!(await prisma.class.findFirst({ where: { id: classId, schoolId } }));
-}
-
-/* ------------------- guardian decoupling (one parent, many kids) -------------------
-   Nigerian reality: one parent, 3–5 children, imported with typos ("Chidi Obi",
-   "Chidi O.", "Mr Obi"). We dedupe on a normalised phone key (digits only,
-   last 10) or email, so SMS/payment links always hit ONE guardian object. */
-
-function phoneKeyOf(phone: string | null | undefined): string | null {
-  if (!phone) return null;
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length < 7) return null; // too short to be a real number
-  return digits.slice(-10);
-}
-
-/** Find-or-create the guardian for (name, phone, email); returns id or null. */
-async function resolveGuardian(
-  schoolId: string,
-  name: string | null,
-  phone: string | null,
-  email?: string | null,
-): Promise<string | null> {
-  const key = phoneKeyOf(phone);
-  const mail = email?.trim().toLowerCase() || null;
-  if (!key && !mail) return null; // nothing to match on → no guardian object
-
-  const existing = await prisma.guardian.findFirst({
-    where: { schoolId, OR: [...(key ? [{ phoneKey: key }] : []), ...(mail ? [{ email: mail }] : [])] },
-  });
-  if (existing) return existing.id;
-
-  const created = await prisma.guardian.create({
-    data: { schoolId, name: name?.trim() || "Guardian", phone: phone?.trim() || null, phoneKey: key, email: mail },
-  });
-  return created.id;
-}
-
-export async function createStudent(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
-  if (!canManageStudents(user.role)) return { error: "Your role can view students but not edit records." };
-  const f = readForm(formData);
-  if (!f.firstName || !f.lastName) return { error: "First and last name are required." };
-  if (!(await classBelongs(user.schoolId, f.classId))) return { error: "Selected class was not found." };
-
-  try {
-    await prisma.student.create({
-      data: {
-        schoolId: user.schoolId,
-        firstName: f.firstName,
-        lastName: f.lastName,
-        admissionNo: f.admissionNo || (await nextAdmissionNo(user.schoolId)),
-        gender: f.gender,
-        dob: f.dob ? new Date(f.dob) : null,
-        guardianName: f.guardianName,
-        guardianPhone: f.guardianPhone,
-        guardianId: await resolveGuardian(user.schoolId, f.guardianName, f.guardianPhone),
-        classId: f.classId,
-      },
-    });
-  } catch {
-    return { error: "Could not save — that admission number may already be in use." };
-  }
+function revalidateStudents() {
   revalidatePath("/dashboard/students");
   revalidatePath("/people/students");
   revalidatePath("/");
   revalidatePath("/dashboard");
+}
+
+export async function createStudent(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await requireCtx();
+  try {
+    await studentsService.create(ctx, readForm(formData));
+  } catch (e) {
+    if (e instanceof ServiceError) return { error: e.message };
+    throw e;
+  }
+  revalidateStudents();
   return { ok: true };
 }
 
 export async function updateStudent(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
-  if (!canManageStudents(user.role)) return { error: "Your role can view students but not edit records." };
-  const id = String(formData.get("id") ?? "");
-  const f = readForm(formData);
-  if (!id) return { error: "Missing student id." };
-  if (!f.firstName || !f.lastName) return { error: "First and last name are required." };
-  if (!(await classBelongs(user.schoolId, f.classId))) return { error: "Selected class was not found." };
-
-  // updateMany with schoolId in the filter guarantees we can't edit another
-  // school's student even if an id were guessed.
-  const res = await prisma.student.updateMany({
-    where: { id, schoolId: user.schoolId },
-    data: {
-      firstName: f.firstName,
-      lastName: f.lastName,
-      gender: f.gender,
-      dob: f.dob ? new Date(f.dob) : null,
-      guardianName: f.guardianName,
-      guardianPhone: f.guardianPhone,
-      guardianId: await resolveGuardian(user.schoolId, f.guardianName, f.guardianPhone),
-      classId: f.classId,
-      ...(f.admissionNo ? { admissionNo: f.admissionNo } : {}),
-    },
-  });
-  if (res.count === 0) return { error: "Student not found." };
-  revalidatePath("/dashboard/students");
-  revalidatePath("/people/students");
-  revalidatePath("/");
+  const ctx = await requireCtx();
+  try {
+    await studentsService.update(ctx, String(formData.get("id") ?? ""), readForm(formData));
+  } catch (e) {
+    if (e instanceof ServiceError) return { error: e.message };
+    throw e;
+  }
+  revalidateStudents();
   return { ok: true };
 }
 
 export async function deleteStudent(formData: FormData): Promise<void> {
-  const user = await requireUser();
-  if (!canManageStudents(user.role)) return;
-  const id = String(formData.get("id") ?? "");
-  if (id) await prisma.student.deleteMany({ where: { id, schoolId: user.schoolId } });
-  revalidatePath("/dashboard/students");
-  revalidatePath("/people/students");
-  revalidatePath("/");
-  revalidatePath("/dashboard");
+  const ctx = await requireCtx();
+  await studentsService.remove(ctx, String(formData.get("id") ?? ""));
+  revalidateStudents();
 }
 
-/* ----------------------------- bulk import ----------------------------- */
-// A single parsed spreadsheet row (built in the browser from an .xlsx/CSV).
-export type ImportRow = {
-  firstName: string;
-  lastName: string;
-  gender?: string | null;
-  dob?: string | null; // ISO yyyy-mm-dd
-  admissionNo?: string | null;
-  className?: string | null; // free text from the sheet (e.g. "JSS 1 A")
-  guardianName?: string | null;
-  guardianPhone?: string | null;
-};
-export type ImportResult = { created: number; classesCreated: string[]; skipped: number; error?: string };
-
-const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
-
-/** Insert many students at once. Optionally creates classes named in the sheet
- *  that don't exist yet. Blank admission numbers are auto-generated. */
 export async function importStudents(rows: ImportRow[], createMissingClasses: boolean): Promise<ImportResult> {
-  const user = await requireUser();
-  if (!canManageStudents(user.role)) return { created: 0, classesCreated: [], skipped: 0, error: "Your role cannot import students." };
-  if (!rows?.length) return { created: 0, classesCreated: [], skipped: 0, error: "No rows to import." };
-
-  // Build a lookup of this school's existing classes (by "name arm" and by name).
-  const existing = await prisma.class.findMany({ where: { schoolId: user.schoolId } });
-  const classByLabel = new Map<string, string>();
-  for (const c of existing) {
-    classByLabel.set(norm(c.arm ? `${c.name} ${c.arm}` : c.name), c.id);
-    classByLabel.set(norm(c.name), c.id);
-  }
-  const classesCreated: string[] = [];
-
-  async function resolveClass(label?: string | null): Promise<string | null> {
-    if (!label || !label.trim()) return null;
-    const key = norm(label);
-    const hit = classByLabel.get(key);
-    if (hit) return hit;
-    if (!createMissingClasses) return null;
-    const created = await prisma.class.create({ data: { schoolId: user.schoolId, name: label.trim() } });
-    classByLabel.set(key, created.id);
-    classesCreated.push(label.trim());
-    return created.id;
-  }
-
-  // Only rows with both names are valid; the rest are skipped.
-  const valid = rows.filter((r) => r.firstName?.trim() && r.lastName?.trim());
-  const skipped = rows.length - valid.length;
-
-  // one guardian per unique phone/email across the whole file
-  const gCache = new Map<string, string | null>();
-  async function guardianFor(name: string | null | undefined, phone: string | null | undefined): Promise<string | null> {
-    const key = phoneKeyOf(phone) ?? "";
-    if (!key) return null;
-    if (gCache.has(key)) return gCache.get(key)!;
-    const id = await resolveGuardian(user.schoolId, name ?? null, phone ?? null);
-    gCache.set(key, id);
-    return id;
-  }
-
-  let nextNo = (await prisma.student.count({ where: { schoolId: user.schoolId } })) + 1;
-  const data: {
-    schoolId: string;
-    firstName: string;
-    lastName: string;
-    admissionNo: string;
-    gender: string | null;
-    dob: Date | null;
-    guardianName: string | null;
-    guardianPhone: string | null;
-    guardianId: string | null;
-    classId: string | null;
-  }[] = [];
-
-  for (const r of valid) {
-    const classId = await resolveClass(r.className);
-    const admissionNo = r.admissionNo?.trim() || `KLK-${String(nextNo++).padStart(4, "0")}`;
-    data.push({
-      schoolId: user.schoolId,
-      firstName: r.firstName.trim(),
-      lastName: r.lastName.trim(),
-      admissionNo,
-      gender: r.gender?.trim() || null,
-      dob: r.dob ? new Date(r.dob) : null,
-      guardianName: r.guardianName?.trim() || null,
-      guardianPhone: r.guardianPhone?.trim() || null,
-      guardianId: await guardianFor(r.guardianName, r.guardianPhone),
-      classId,
-    });
-  }
-
-  let created = 0;
+  const ctx = await requireCtx();
   try {
-    const res = await prisma.student.createMany({ data, skipDuplicates: true });
-    created = res.count;
-  } catch {
-    return { created: 0, classesCreated, skipped, error: "Saving failed — check for duplicate admission numbers in the file." };
+    const res = await studentsService.import(ctx, rows, createMissingClasses);
+    revalidateStudents();
+    return res;
+  } catch (e) {
+    if (e instanceof ServiceError) return { created: 0, classesCreated: [], skipped: 0, error: e.message };
+    throw e;
   }
-  revalidatePath("/dashboard/students");
-  revalidatePath("/people/students");
-  revalidatePath("/");
-  revalidatePath("/dashboard");
-  return { created, classesCreated, skipped };
 }

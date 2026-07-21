@@ -31,7 +31,7 @@ export function KPI({
   const deltaColor = down ? "var(--color-red)" : up ? "var(--color-green)" : "var(--color-amber-2)";
 
   return (
-    <Card hover pad={18} className="flex flex-col gap-3">
+    <Card pad={18} className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-4">{label}</span>
         {icon && (
@@ -48,10 +48,9 @@ export function KPI({
       <div className="flex items-center gap-2">
         {delta && (
           <span
-            className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11.5px] font-semibold"
+            className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11.5px] font-semibold"
             style={{ color: deltaColor, background: down ? "var(--color-red-soft)" : up ? "var(--color-green-soft)" : "var(--color-amber-soft)" }}
           >
-            {(up || down) && <Icon name={down ? "arrowD" : "arrowU"} size={12} />}
             {delta}
           </span>
         )}

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
+import { requireCtx } from "@/server/context";
 import { canManageStudents } from "@/lib/auth/permissions";
-import { prisma } from "@/lib/db";
+import { studentsService } from "@/server/services/students";
 import { SectionTitle } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { ImportStudents } from "@/components/dashboard/ImportStudents";
@@ -11,10 +11,9 @@ export const metadata = { title: "Bulk import · Klaska" };
 
 // Bulk student import — inside the main Klaska shell.
 export default async function Page() {
-  const user = await requireUser();
+  const user = await requireCtx();
   if (!canManageStudents(user.role)) redirect("/people/students");
-  const classes = await prisma.class.findMany({ where: { schoolId: user.schoolId } });
-  const labels = classes.flatMap((c) => [c.arm ? `${c.name} ${c.arm}` : c.name, c.name]);
+  const labels = await studentsService.importClassLabels(user);
 
   return (
     <div className="mx-auto max-w-[1100px]">

@@ -1,25 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
+import { requireCtx } from "@/server/context";
 import { canView } from "@/lib/auth/permissions";
-import { buildSchoolAnalysis } from "@/lib/analysis";
+import { analysisService } from "@/server/services/academics";
 import { SectionTitle } from "@/components/ui/primitives";
 import { AnalysisView } from "@/components/academics/AnalysisView";
-import { detectTerm, TERM_LABEL, type TermKey } from "@/lib/terms";
 
 export const metadata = { title: "Report Analysis · Klaska" };
 
 export default async function Page() {
-  const user = await requireUser();
+  const user = await requireCtx();
   if (!canView(user.role, "results")) redirect("/");
 
-  const [a, school] = await Promise.all([
-    buildSchoolAnalysis(user),
-    prisma.school.findUnique({ where: { id: user.schoolId }, select: { name: true, session: true, term: true } }),
-  ]);
-  const fallback = detectTerm();
-  const termKey = (school?.term as TermKey) || fallback.term;
+  const { a, meta } = await analysisService.view(user);
 
   return (
     <div className="mx-auto max-w-[1200px]">
@@ -33,10 +26,7 @@ export default async function Page() {
           </Link>
         }
       />
-      <AnalysisView
-        a={a}
-        meta={{ school: school?.name || "Your school", session: school?.session || fallback.session, termLabel: TERM_LABEL[termKey] }}
-      />
+      <AnalysisView a={a} meta={meta} />
     </div>
   );
 }

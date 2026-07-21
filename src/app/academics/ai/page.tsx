@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
+import { requireCtx } from "@/server/context";
 import { canView } from "@/lib/auth/permissions";
-import { buildAIOutcomes } from "@/lib/ai-real";
-import { prisma } from "@/lib/db";
-import { hasFeature } from "@/lib/tier";
+import { aiService } from "@/server/services/academics";
 import { Card } from "@/components/ui/primitives";
 import Link from "next/link";
 import { SectionTitle } from "@/components/ui/primitives";
@@ -15,12 +13,12 @@ export const metadata = { title: "AI Outcomes Engine · Klaska" };
 // attendance, exam-class readiness, and concrete intervention suggestions.
 // Teachers see their own classes only (classScope inside the builder).
 export default async function Page() {
-  const user = await requireUser();
+  const user = await requireCtx();
   if (!canView(user.role, "ai")) redirect("/");
 
-  const school = await prisma.school.findUnique({ where: { id: user.schoolId }, select: { tier: true } });
+  const { locked, a } = await aiService.view(user);
   // Tiering: the AI engine is an Enterprise module (feature flag).
-  if (!hasFeature(school?.tier, "aiEngine")) {
+  if (locked || !a) {
     return (
       <div className="mx-auto max-w-[760px]">
         <SectionTitle eyebrow="Academics" title="AI Outcomes Engine" sub="Predictions, risk flags and intervention suggestions from your real scores and attendance." />
@@ -37,8 +35,6 @@ export default async function Page() {
       </div>
     );
   }
-
-  const a = await buildAIOutcomes(user);
 
   return (
     <div className="mx-auto max-w-[1200px]">

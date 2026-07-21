@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
-import { classScope } from "@/lib/auth/scope";
+import { requireCtx } from "@/server/context";
 import { canView } from "@/lib/auth/permissions";
-import { buildClassCards } from "@/lib/reportcard";
+import { reportCardsService } from "@/server/services/academics";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { ReportCardsBrowser } from "@/components/academics/ReportCardsBrowser";
 import { detectTerm, TERM_LABEL, fmtShortDate, type TermKey } from "@/lib/terms";
@@ -13,13 +11,11 @@ export const metadata = { title: "Report Cards · Klaska" };
 
 // Real report cards, generated from the school's own results (Flow 3).
 export default async function Page({ searchParams }: { searchParams: Promise<{ classId?: string }> }) {
-  const user = await requireUser();
+  const user = await requireCtx();
   if (!canView(user.role, "results")) redirect("/");
   const sp = await searchParams;
 
-  const classes = await prisma.class.findMany({ where: classScope(user), orderBy: [{ name: "asc" }, { arm: "asc" }] });
-  const classId = sp.classId && classes.some((c) => c.id === sp.classId) ? sp.classId : classes[0]?.id ?? "";
-  const classOptions = classes.map((c) => ({ value: c.id, label: c.arm ? `${c.name} ${c.arm}` : c.name }));
+  const { classOptions, classId, data } = await reportCardsService.view(user, sp.classId);
 
   if (!classId) {
     return (
@@ -30,7 +26,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
     );
   }
 
-  const data = await buildClassCards(user, classId);
   if (!data) redirect("/academics/report-cards");
   const { school, klass, bands, cards, numberInClass } = data;
 

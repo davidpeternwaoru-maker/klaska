@@ -134,6 +134,12 @@ export const studentsService = {
     };
   },
 
+  /** Class labels (both "Name Arm" and "Name") for matching a spreadsheet import. */
+  async importClassLabels(ctx: Ctx): Promise<string[]> {
+    const classes = await prisma.class.findMany({ where: { schoolId: ctx.schoolId } });
+    return classes.flatMap((c) => [classLabel(c), c.name]);
+  },
+
   /** Classes selectable for this ctx (teachers → their own). */
   async classes(ctx: Ctx): Promise<{ id: string; label: string }[]> {
     const rows = await prisma.class.findMany({ where: classScopeWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] });

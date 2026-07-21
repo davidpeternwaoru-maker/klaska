@@ -31,6 +31,17 @@ export type SettingsView = {
   termInfo: { session: string | null; term: string | null; termStart: string | null; termEnd: string | null };
 };
 
+export type WizardView = {
+  ownerName: string;
+  school: { name: string; shortName: string | null; motto: string | null; address: string | null; email: string | null; phone: string | null; logoUrl: string | null; sections: string[] };
+  classes: { id: string; name: string; arm: string | null }[];
+  subjects: string[];
+  grading: Record<string, WizardBand[]>;
+  feeItems: { name: string; mandatory: boolean }[];
+  feeAmounts: WizardFeeAmounts;
+  staff: { id: string; name: string; email: string; role: Role }[];
+};
+
 const requireSchoolAdmin = (ctx: Ctx) => {
   if (!CAN_MANAGE_SCHOOL.includes(ctx.role)) throw new ServiceError("You don't have permission to do that.");
 };
@@ -174,6 +185,43 @@ export const setupService = {
         termStart: school.termStart ? school.termStart.toISOString().slice(0, 10) : null,
         termEnd: school.termEnd ? school.termEnd.toISOString().slice(0, 10) : null,
       },
+    };
+  },
+
+  /** Everything the onboarding wizard needs (a superset of the school config). */
+  async wizardView(ctx: Ctx): Promise<WizardView | null> {
+    const school = await prisma.school.findUnique({ where: { id: ctx.schoolId } });
+    if (!school) return null;
+
+    const [classes, bands, feeItems, classFees, staff, subjects] = await Promise.all([
+      prisma.class.findMany({ where: { schoolId: ctx.schoolId }, orderBy: [{ name: "asc" }, { arm: "asc" }] }),
+      prisma.gradingBand.findMany({ where: { schoolId: ctx.schoolId }, orderBy: [{ category: "asc" }, { order: "asc" }] }),
+      prisma.feeItem.findMany({ where: { schoolId: ctx.schoolId }, orderBy: { order: "asc" } }),
+      prisma.classFee.findMany({ where: { schoolId: ctx.schoolId } }),
+      prisma.staff.findMany({ where: { schoolId: ctx.schoolId }, orderBy: { createdAt: "asc" } }),
+      prisma.subject.findMany({ where: { schoolId: ctx.schoolId }, select: { name: true } }),
+    ]);
+
+    const grading: Record<string, WizardBand[]> = {};
+    for (const b of bands) (grading[b.category] = grading[b.category] || []).push({ label: b.label, minScore: b.minScore, maxScore: b.maxScore, remark: b.remark });
+
+    const feeIdToName = new Map(feeItems.map((f) => [f.id, f.name]));
+    const feeAmounts: WizardFeeAmounts = {};
+    for (const cf of classFees) {
+      const name = feeIdToName.get(cf.feeItemId);
+      if (!name) continue;
+      (feeAmounts[name] = feeAmounts[name] || {})[cf.classId] = cf.amount;
+    }
+
+    return {
+      ownerName: ctx.name,
+      school: { name: school.name, shortName: school.shortName, motto: school.motto, address: school.address, email: school.email, phone: school.phone, logoUrl: school.logoUrl, sections: school.sections },
+      classes: classes.map((c) => ({ id: c.id, name: c.name, arm: c.arm })),
+      subjects: subjects.map((s) => s.name),
+      grading,
+      feeItems: feeItems.map((f) => ({ name: f.name, mandatory: f.mandatory })),
+      feeAmounts,
+      staff: staff.map((s) => ({ id: s.id, name: s.name, email: s.email, role: s.role })),
     };
   },
 

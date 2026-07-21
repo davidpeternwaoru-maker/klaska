@@ -35,7 +35,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "results", label: "Results Entry", icon: "edit", href: "/academics/results", area: "results" },
       { id: "reportcards", label: "Report Cards", icon: "reports", href: "/academics/report-cards", area: "results" },
       { id: "analysis", label: "Report Analysis", icon: "trend", href: "/academics/analysis", area: "results" },
-      { id: "reports", label: "Analysis (demo)", icon: "layers", href: "/academics/reports", area: "results" },
       { id: "ai", label: "AI Outcomes Engine", icon: "ai", href: "/academics/ai", accent: true, area: "ai" },
     ],
   },

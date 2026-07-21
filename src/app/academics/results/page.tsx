@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
-import { classScope } from "@/lib/auth/scope";
-import { canView, canEnterScores } from "@/lib/auth/permissions";
+import { requireCtx } from "@/server/context";
+import { resultsService } from "@/server/services/results";
+import { canView } from "@/lib/auth/permissions";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { ResultsControls } from "@/components/dashboard/ResultsControls";
-import { ResultsGrid, type ExistingResult } from "@/components/dashboard/ResultsGrid";
+import { ResultsGrid } from "@/components/dashboard/ResultsGrid";
 
 // Real results entry in the polished shell: class + subject → CA1/CA2/Exam,
 // totals and grades computed automatically, saved per student.
@@ -15,32 +14,14 @@ export default async function Page({
 }: {
   searchParams: Promise<{ classId?: string; subjectId?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireCtx();
   if (!canView(user.role, "results")) redirect("/");
   const sp = await searchParams;
 
-  const [classes, subjects] = await Promise.all([
-    prisma.class.findMany({ where: classScope(user), orderBy: [{ name: "asc" }, { arm: "asc" }] }),
-    prisma.subject.findMany({ where: { schoolId: user.schoolId }, orderBy: { name: "asc" } }),
-  ]);
-  const classId = sp.classId || classes[0]?.id || "";
-  const subjectId = sp.subjectId || subjects[0]?.id || "";
-  const classOptions = classes.map((c) => ({ value: c.id, label: c.arm ? `${c.name} ${c.arm}` : c.name }));
-  const subjectOptions = subjects.map((s) => ({ value: s.id, label: s.name }));
-
-  let students: { id: string; name: string }[] = [];
-  let existing: Record<string, ExistingResult> = {};
-  if (classId && subjectId) {
-    const list = await prisma.student.findMany({
-      where: { schoolId: user.schoolId, classId },
-      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-    });
-    students = list.map((s) => ({ id: s.id, name: `${s.firstName} ${s.lastName}` }));
-    const rows = await prisma.result.findMany({
-      where: { schoolId: user.schoolId, subjectId, studentId: { in: students.map((s) => s.id) } },
-    });
-    existing = Object.fromEntries(rows.map((r) => [r.studentId, { ca1: r.ca1, ca2: r.ca2, exam: r.exam, total: r.total, grade: r.grade }]));
-  }
+  const { hasClasses, hasSubjects, classOptions, subjectOptions, classId, subjectId, students, existing, canEnter } = await resultsService.grid(user, {
+    classId: sp.classId,
+    subjectId: sp.subjectId,
+  });
 
   return (
     <div className="mx-auto max-w-[1100px]">
@@ -60,9 +41,9 @@ export default async function Page({
         }
       />
 
-      {classes.length === 0 ? (
+      {!hasClasses ? (
         <Card className="text-center text-[13px] text-ink-4">Create classes and add students first.</Card>
-      ) : subjects.length === 0 ? (
+      ) : !hasSubjects ? (
         <Card className="text-center text-[13px] text-ink-4">
           No subjects yet.{" "}
           <Link href="/academics/subjects" className="font-medium text-forest hover:underline">Add subjects</Link> to start entering results.
@@ -71,7 +52,7 @@ export default async function Page({
         <>
           <ResultsControls classes={classOptions} subjects={subjectOptions} classId={classId} subjectId={subjectId} basePath="/academics/results" />
           {students.length > 0 ? (
-            <ResultsGrid key={`${classId}:${subjectId}`} classId={classId} subjectId={subjectId} students={students} existing={existing} readOnly={!canEnterScores(user.role)} />
+            <ResultsGrid key={`${classId}:${subjectId}`} classId={classId} subjectId={subjectId} students={students} existing={existing} readOnly={!canEnter} />
           ) : (
             <Card className="mt-5 text-center text-[13px] text-ink-4">No students in this class yet.</Card>
           )}

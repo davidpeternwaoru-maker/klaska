@@ -18,7 +18,7 @@ export default async function Page() {
         title="Report Analysis"
         sub="Class-by-class performance from your saved scores — averages, leaders, weak spots, and exportable broadsheets."
         right={
-          <Link href="/academics/report-cards" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+          <Link href="/academics/report-cards" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
             Report cards
           </Link>
         }

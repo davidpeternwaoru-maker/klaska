@@ -219,7 +219,7 @@ export function ImportStudents({ existingClasses }: { existingClasses: string[] 
         <Card className="border-forest-line bg-forest-soft/50">
           <div className="flex items-center gap-2 text-forest">
             <Icon name="check" size={18} />
-            <span className="text-[14px] font-semibold">Imported {result.created} students.</span>
+            <span className="text-body font-semibold">Imported {result.created} students.</span>
           </div>
           <div className="mt-1 text-[12.5px] text-ink-3">
             {result.classesCreated.length > 0 && <>Created {result.classesCreated.length} new class(es): {result.classesCreated.join(", ")}. </>}
@@ -234,7 +234,7 @@ export function ImportStudents({ existingClasses }: { existingClasses: string[] 
       <Card>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-[14px] font-semibold text-ink">Import students from a spreadsheet</div>
+            <div className="text-body font-semibold text-ink">Import students from a spreadsheet</div>
             <div className="mt-1 text-[12.5px] text-ink-4">Upload an .xlsx or .csv. Don&apos;t have one ready? Download the template, fill it in, and upload it back.</div>
           </div>
           <button onClick={downloadTemplate} className="flex flex-none items-center gap-1.5 rounded-[9px] border border-border px-3 py-2 text-[12.5px] font-medium text-ink-2 hover:bg-secondary">
@@ -242,7 +242,7 @@ export function ImportStudents({ existingClasses }: { existingClasses: string[] 
           </button>
         </div>
 
-        <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[12px] border-2 border-dashed border-border bg-secondary/40 px-4 py-8 text-center transition hover:border-forest-line hover:bg-secondary">
+        <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border-2 border-dashed border-border bg-secondary/40 px-4 py-8 text-center transition hover:border-forest-line hover:bg-secondary">
           <Icon name="download" size={22} style={{ color: "var(--color-ink-4)", transform: "rotate(180deg)" }} />
           <span className="text-[13px] font-medium text-ink-2">{fileName || "Click to choose a file"}</span>
           <span className="text-[11.5px] text-ink-4">.xlsx or .csv</span>
@@ -267,7 +267,7 @@ export function ImportStudents({ existingClasses }: { existingClasses: string[] 
         <Card pad={0} className="overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div className="flex items-center gap-2">
-              <span className="text-[14px] font-semibold text-ink">Preview</span>
+              <span className="text-body font-semibold text-ink">Preview</span>
               <Pill tone="green">{validCount} ready</Pill>
               {invalidCount > 0 && <Pill tone="red">{invalidCount} skipped</Pill>}
               {newClasses.length > 0 && <Pill tone="amber">{newClasses.length} new class(es)</Pill>}

@@ -95,7 +95,7 @@ export function FeesStep({
             <div className="mb-2 text-[12px] font-medium text-ink-3">Fee types</div>
             <div className="flex flex-wrap gap-2">
               {types.map((t) => (
-                <div key={t.id} className="flex items-center gap-1.5 rounded-[10px] border border-border bg-secondary/50 py-1 pl-2 pr-1">
+                <div key={t.id} className="flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border bg-secondary/50 py-1 pl-2 pr-1">
                   <input
                     value={t.name}
                     onChange={(e) => setType(t.id, { name: e.target.value })}
@@ -110,14 +110,14 @@ export function FeesStep({
                   </button>
                 </div>
               ))}
-              <button onClick={addType} className="flex items-center gap-1 rounded-[10px] border border-dashed border-border px-2.5 py-1.5 text-[12.5px] font-medium text-forest hover:bg-secondary">
+              <button onClick={addType} className="flex items-center gap-1 rounded-[var(--radius-card)] border border-dashed border-border px-2.5 py-1.5 text-[12.5px] font-medium text-forest hover:bg-secondary">
                 <Icon name="plus" size={13} /> Add fee type
               </button>
             </div>
           </div>
 
           {/* grid */}
-          <div className="overflow-x-auto rounded-[12px] border border-border">
+          <div className="overflow-x-auto rounded-[var(--radius-card)] border border-border">
             <table className="w-full border-collapse text-[12.5px]">
               <thead>
                 <tr className="bg-secondary text-[11px] uppercase tracking-wide text-ink-4">
@@ -165,7 +165,7 @@ export function FeesStep({
         {onSkip && (
           <button onClick={onSkip} className="text-[13px] font-medium text-ink-4 transition hover:text-ink">Skip for now →</button>
         )}
-        <button onClick={save} disabled={pending} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+        <button onClick={save} disabled={pending} className="h-10 rounded-[var(--radius-card)] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
           {pending ? "Saving…" : ctaLabel ?? "Save & continue"}
         </button>
       </div>

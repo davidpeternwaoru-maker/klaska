@@ -43,7 +43,7 @@ export function FinancingPage() {
       <div className="mt-3 grid grid-cols-1 gap-5 opacity-90 sm:grid-cols-3">
         {FEATURES.map((f) => (
           <Card key={f.title} hover>
-            <span className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-forest-soft text-forest">
+            <span className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest">
               <Icon name={f.icon} size={20} />
             </span>
             <div className="mt-4 text-[15px] font-semibold text-ink">{f.title}</div>

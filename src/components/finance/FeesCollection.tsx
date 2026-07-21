@@ -78,12 +78,12 @@ function PayModal({ row, onClose }: { row: FeeRow; onClose: () => void }) {
     if (state.ok) onClose();
   }, [state.ok, state, onClose]);
   const balance = Math.max(0, row.total - row.paid);
-  const input = "h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
+  const input = "h-10 w-full rounded-[var(--radius-card)] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="mt-14 w-full max-w-[440px]" onClick={(e) => e.stopPropagation()}>
         <Card>
-          <div className="mb-1 text-[14px] font-semibold text-ink">Record payment — {row.student}</div>
+          <div className="mb-1 text-body font-semibold text-ink">Record payment — {row.student}</div>
           <div className="mb-3 text-[12.5px] text-ink-4">Balance <b className="text-ink">{ngn(balance)}</b> of {ngn(row.total)}</div>
           <form action={action} className="flex flex-col gap-3">
             <input type="hidden" name="invoiceId" value={row.id} />
@@ -107,10 +107,10 @@ function PayModal({ row, onClose }: { row: FeeRow; onClose: () => void }) {
             </div>
             {state.error && <p className="text-[12.5px] font-medium text-red">{state.error}</p>}
             <div className="flex gap-2">
-              <button disabled={pending} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+              <button disabled={pending} className="h-10 rounded-[var(--radius-card)] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
                 {pending ? "Saving…" : "Record payment"}
               </button>
-              <button type="button" onClick={onClose} className="h-10 rounded-[10px] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">
+              <button type="button" onClick={onClose} className="h-10 rounded-[var(--radius-card)] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">
                 Cancel
               </button>
             </div>
@@ -144,10 +144,10 @@ function PickPayModal({ rows, onClose }: { rows: FeeRow[]; onClose: () => void }
       <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
         <div className="mt-14 w-full max-w-[440px]" onClick={(e) => e.stopPropagation()}>
           <Card>
-            <div className="mb-1 text-[14px] font-semibold text-ink">Record payment</div>
+            <div className="mb-1 text-body font-semibold text-ink">Record payment</div>
             <p className="text-[13px] text-ink-4">No invoices for this term yet — use “Generate this term&apos;s invoices” in the banner above first, then record payments against them.</p>
             <div className="mt-4 flex justify-end">
-              <button onClick={onClose} className="h-10 rounded-[10px] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">Close</button>
+              <button onClick={onClose} className="h-10 rounded-[var(--radius-card)] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">Close</button>
             </div>
           </Card>
         </div>
@@ -159,13 +159,13 @@ function PickPayModal({ rows, onClose }: { rows: FeeRow[]; onClose: () => void }
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="mt-14 w-full max-w-[460px]" onClick={(e) => e.stopPropagation()}>
         <Card>
-          <div className="mb-3 text-[14px] font-semibold text-ink">Record payment</div>
+          <div className="mb-3 text-body font-semibold text-ink">Record payment</div>
           <label className="block">
             <span className="mb-1 block text-[11.5px] font-medium text-ink-3">Student</span>
             <select
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card"
+              className="h-10 w-full rounded-[var(--radius-card)] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card"
             >
               {ordered.map((r) => {
                 const bal = Math.max(0, r.total - r.paid);
@@ -190,11 +190,11 @@ function InlinePayForm({ row, onDone }: { row: FeeRow; onDone: () => void }) {
     if (state.ok) onDone();
   }, [state.ok, state, onDone]);
   const balance = Math.max(0, row.total - row.paid);
-  const input = "h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
+  const input = "h-10 w-full rounded-[var(--radius-card)] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
   return (
     <form key={row.id} action={action} className="mt-3 flex flex-col gap-3">
       <input type="hidden" name="invoiceId" value={row.id} />
-      <div className="rounded-[10px] bg-secondary px-3 py-2 text-[12.5px] text-ink-3">
+      <div className="rounded-[var(--radius-card)] bg-secondary px-3 py-2 text-[12.5px] text-ink-3">
         Bill {ngn(row.total)} · paid {ngn(row.paid)} · balance <b className="text-ink">{ngn(balance)}</b>
       </div>
       <label className="block">
@@ -217,8 +217,8 @@ function InlinePayForm({ row, onDone }: { row: FeeRow; onDone: () => void }) {
       </div>
       {state.error && <p className="text-[12.5px] font-medium text-red">{state.error}</p>}
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onDone} className="h-10 rounded-[10px] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">Cancel</button>
-        <button disabled={pending} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+        <button type="button" onClick={onDone} className="h-10 rounded-[var(--radius-card)] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">Cancel</button>
+        <button disabled={pending} className="h-10 rounded-[var(--radius-card)] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
           {pending ? "Saving…" : "Record payment"}
         </button>
       </div>
@@ -307,14 +307,14 @@ export function FeesCollection({
         sub={`Term fee status for every student across ${classRange}.`}
         right={
           <>
-            <button onClick={() => exportFeesExcel(meta, rows.map((r) => ({ student: r.student, className: r.className, total: r.total, paid: r.paid })))} className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <button onClick={() => exportFeesExcel(meta, rows.map((r) => ({ student: r.student, className: r.className, total: r.total, paid: r.paid })))} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="download" size={15} /> Export to Excel
             </button>
-            <button onClick={() => flash("Pay links arrive with virtual collection — coming soon.")} className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <button onClick={() => flash("Pay links arrive with virtual collection — coming soon.")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="bell" size={15} /> Send pay link
             </button>
             {canManage && (
-              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
                 <Icon name="plus" size={15} /> Record payment
               </button>
             )}
@@ -322,12 +322,12 @@ export function FeesCollection({
         }
       />
 
-      {note && <div className="mb-3 rounded-[10px] bg-amber-soft px-3.5 py-2 text-[12.5px] font-medium text-amber-2">{note}</div>}
+      {note && <div className="mb-3 rounded-[var(--radius-card)] bg-amber-soft px-3.5 py-2 text-[12.5px] font-medium text-amber-2">{note}</div>}
 
       {/* collection-mode banner */}
       <Card className="mb-5">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="flex h-11 w-11 flex-none items-center justify-center rounded-[12px] bg-forest-soft text-forest">
+          <span className="flex h-11 w-11 flex-none items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest">
             <Icon name={feeMode === "VIRTUAL" ? "nfc" : "receipt"} size={20} />
           </span>
           <div className="min-w-0 flex-1">
@@ -345,11 +345,11 @@ export function FeesCollection({
           </div>
           <div className="flex items-center gap-2">
             {canManage && (
-              <button onClick={gen} disabled={genPending} className="rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary disabled:opacity-60">
+              <button onClick={gen} disabled={genPending} className="rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary disabled:opacity-60">
                 {genPending ? "Generating…" : "Generate this term's invoices"}
               </button>
             )}
-            <Link href="/settings" className="inline-flex items-center gap-1 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <Link href="/settings" className="inline-flex items-center gap-1 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               Change in Settings <Icon name="arrowR" size={14} />
             </Link>
           </div>
@@ -400,7 +400,7 @@ export function FeesCollection({
             {tabBtn("receipts", "Receipts")}
           </div>
           <div className="flex items-center gap-2">
-            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="h-9 rounded-[10px] border border-border bg-card px-2.5 text-[13px] text-ink outline-none focus:border-forest-line">
+            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="h-9 rounded-[var(--radius-card)] border border-border bg-card px-2.5 text-[13px] text-ink outline-none focus:border-forest-line">
               <option value="all">All classes</option>
               {classOptions.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -408,7 +408,7 @@ export function FeesCollection({
             </select>
             <div className="relative">
               <Icon name="search" size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--color-ink-4)" }} />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" className="h-9 w-36 rounded-[10px] border border-border bg-card pl-7.5 pr-2 text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-forest-line" style={{ paddingLeft: 30 }} />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" className="h-9 w-36 rounded-[var(--radius-card)] border border-border bg-card pl-7.5 pr-2 text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-forest-line" style={{ paddingLeft: 30 }} />
             </div>
           </div>
         </div>

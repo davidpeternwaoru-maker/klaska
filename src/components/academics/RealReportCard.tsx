@@ -76,14 +76,14 @@ export function RealReportCard({
           </Button>
         </div>
 
-        <div className="k-print rounded-[10px] border border-ink-2 bg-white p-5" style={{ color: "#1a1a18" }}>
+        <div className="k-print rounded-[var(--radius-card)] border border-ink-2 bg-white p-5" style={{ color: "#1a1a18" }}>
           {/* header — the school's own branding */}
           <div className="flex items-center gap-3 border-b-2 border-forest pb-3">
             {school.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={school.logoUrl} alt={school.name} className="h-14 w-14 flex-none rounded-[12px] object-contain" />
+              <img src={school.logoUrl} alt={school.name} className="h-14 w-14 flex-none rounded-[var(--radius-card)] object-contain" />
             ) : (
-              <span className="flex h-14 w-14 flex-none items-center justify-center rounded-[12px] bg-forest-soft">
+              <span className="flex h-14 w-14 flex-none items-center justify-center rounded-[var(--radius-card)] bg-forest-soft">
                 <KLogo size={40} />
               </span>
             )}

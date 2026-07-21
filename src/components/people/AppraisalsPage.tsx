@@ -87,7 +87,7 @@ function Roster({ board, onOpen }: { board: Appraisal[]; onOpen: (id: string) =>
   return (
     <Card pad={0} className="overflow-hidden">
       <div className="flex items-center justify-between p-5">
-        <div className="text-[14px] font-semibold text-ink">All staff · {board.length}</div>
+        <div className="text-body font-semibold text-ink">All staff · {board.length}</div>
         <div className="text-[12px] text-ink-4">Click a member to open their appraisal sheet</div>
       </div>
       {board.length === 0 ? (
@@ -166,7 +166,7 @@ function Framework() {
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <Card className="lg:col-span-2">
-        <div className="text-[14px] font-semibold text-ink">What each teacher is appraised on</div>
+        <div className="text-body font-semibold text-ink">What each teacher is appraised on</div>
         <div className="mt-1 text-[12.5px] text-ink-4">Eight weighted competencies — weights determine each area&apos;s share of the final score.</div>
         <div className="mt-4 flex flex-col divide-y divide-border">
           {COMPETENCIES.map((c) => (
@@ -182,7 +182,7 @@ function Framework() {
       </Card>
       <div className="flex flex-col gap-5">
         <Card>
-          <div className="text-[14px] font-semibold text-ink">Who appraises (360°)</div>
+          <div className="text-body font-semibold text-ink">Who appraises (360°)</div>
           <div className="mt-3 flex flex-col gap-3">
             {RATERS.map((rt) => (
               <div key={rt.id} className="flex items-center gap-2.5">
@@ -197,7 +197,7 @@ function Framework() {
           </div>
         </Card>
         <Card>
-          <div className="text-[14px] font-semibold text-ink">Rating scale</div>
+          <div className="text-body font-semibold text-ink">Rating scale</div>
           <div className="mt-3 flex flex-col gap-1.5">
             {SCALE.map((s) => (
               <div key={s.v} className="flex items-center gap-2.5 text-[12.5px]">
@@ -265,9 +265,9 @@ function AppraisalSheet({ a, meta, canSignoff, onClose }: { a: Appraisal; meta: 
           <Button kind="dark" size="sm" onClick={onClose}>Close</Button>
         </div>
 
-        <div className="k-print rounded-[10px] border border-ink-2 bg-white p-5" style={{ color: "#1a1a18" }}>
+        <div className="k-print rounded-[var(--radius-card)] border border-ink-2 bg-white p-5" style={{ color: "#1a1a18" }}>
           <div className="flex items-center gap-3 border-b-2 border-forest pb-3">
-            <span className="flex h-14 w-14 flex-none items-center justify-center rounded-[12px] bg-forest-soft"><KLogo size={40} /></span>
+            <span className="flex h-14 w-14 flex-none items-center justify-center rounded-[var(--radius-card)] bg-forest-soft"><KLogo size={40} /></span>
             <div className="flex-1 text-center">
               <div className="font-display text-[20px] font-bold uppercase tracking-wide text-forest">{meta.school}</div>
               <div className="mt-1 inline-block rounded bg-ink px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">Staff Performance Appraisal</div>
@@ -284,7 +284,7 @@ function AppraisalSheet({ a, meta, canSignoff, onClose }: { a: Appraisal; meta: 
               <Ri k="Overall" v={a.overall != null ? a.overall.toFixed(2) : "—"} />
             </div>
             {a.overall != null && a.band && (
-              <div className="flex flex-none flex-col items-center rounded-[10px] border border-line-2 px-3 py-2">
+              <div className="flex flex-none flex-col items-center rounded-[var(--radius-card)] border border-line-2 px-3 py-2">
                 <span className="font-display text-[22px] font-bold text-forest">{a.overall.toFixed(2)}</span>
                 <span className="text-[9px] font-semibold uppercase text-ink-4">{a.band.label}</span>
               </div>
@@ -356,7 +356,7 @@ function AppraisalSheet({ a, meta, canSignoff, onClose }: { a: Appraisal; meta: 
         <div className="k-noprint mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
           <Card>
             <div className="flex items-center justify-between">
-              <div className="text-[14px] font-semibold text-ink">Record an appraisal</div>
+              <div className="text-body font-semibold text-ink">Record an appraisal</div>
               {locked && <Pill tone="green">Locked — signed off</Pill>}
             </div>
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -394,12 +394,12 @@ function AppraisalSheet({ a, meta, canSignoff, onClose }: { a: Appraisal; meta: 
           </Card>
 
           <Card>
-            <div className="text-[14px] font-semibold text-ink">Principal&apos;s sign-off</div>
+            <div className="text-body font-semibold text-ink">Principal&apos;s sign-off</div>
             <div className="mt-1 text-[12.5px] text-ink-4">The principal formally confirms the appraisal. This locks the record.</div>
             {!canSignoff ? (
-              <div className="mt-4 rounded-[12px] bg-secondary p-4 text-[12.5px] text-ink-3">Only the owner or principal can sign off appraisals.</div>
+              <div className="mt-4 rounded-[var(--radius-card)] bg-secondary p-4 text-[12.5px] text-ink-3">Only the owner or principal can sign off appraisals.</div>
             ) : a.signed ? (
-              <div className="mt-4 rounded-[12px] bg-forest-soft p-4">
+              <div className="mt-4 rounded-[var(--radius-card)] bg-forest-soft p-4">
                 <div className="flex items-center gap-2 text-forest"><Icon name="check" size={18} /><span className="text-[13px] font-semibold">Signed off</span></div>
                 <div className="mt-1 text-[12.5px] text-ink-2">{a.signed.by} · {a.signed.date}</div>
                 <Button kind="ghost" size="sm" icon="refresh" style={{ marginTop: 12 }} disabled={pending} onClick={reopen}>Reopen appraisal</Button>

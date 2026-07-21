@@ -19,10 +19,10 @@ const hueOf = (s: string) => {
 function QuickActions({ items }: { items: { href: string; label: string; icon: IconName }[] }) {
   return (
     <Card>
-      <div className="mb-3 text-[14px] font-semibold text-ink">Quick actions</div>
+      <div className="mb-3 text-body font-semibold text-ink">Quick actions</div>
       <div className="flex flex-col gap-2">
         {items.map((q) => (
-          <Link key={q.href} href={q.href} className="flex items-center gap-2.5 rounded-[10px] border border-border px-3 py-2.5 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+          <Link key={q.href} href={q.href} className="flex items-center gap-2.5 rounded-[var(--radius-card)] border border-border px-3 py-2.5 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
             <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-forest-soft text-forest">
               <Icon name={q.icon} size={15} />
             </span>
@@ -54,7 +54,7 @@ export function BursarOverview({
         title={`Welcome, ${greet}`}
         sub={`${schoolName}'s money at a glance — your bursar view.`}
         right={
-          <Link href="/finance/fees" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+          <Link href="/finance/fees" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
             <Icon name="fees" size={15} /> Fees & payments
           </Link>
         }
@@ -69,7 +69,7 @@ export function BursarOverview({
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Card pad={0} className="overflow-hidden lg:col-span-2">
           <div className="flex items-center justify-between p-5">
-            <div className="text-[14px] font-semibold text-ink">Recent payments</div>
+            <div className="text-body font-semibold text-ink">Recent payments</div>
             <Link href="/finance/system" className="text-[12.5px] font-medium text-forest hover:underline">Financial system →</Link>
           </div>
           {recentPayments.length === 0 ? (
@@ -124,7 +124,7 @@ export function TeacherOverview({
         title={`Welcome, ${greet}`}
         sub={`Your classes at ${schoolName} today.`}
         right={
-          <Link href="/people/attendance" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+          <Link href="/people/attendance" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
             <Icon name="attendance" size={15} /> Take attendance
           </Link>
         }
@@ -137,7 +137,7 @@ export function TeacherOverview({
 
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Card pad={0} className="overflow-hidden lg:col-span-2">
-          <div className="p-5 text-[14px] font-semibold text-ink">My classes</div>
+          <div className="p-5 text-body font-semibold text-ink">My classes</div>
           {classes.length === 0 ? (
             <div className="px-5 pb-10 pt-2 text-center text-[13px] text-ink-4">
               No classes assigned to you yet — ask your admin to set you as a form teacher under People → Classes.
@@ -146,7 +146,7 @@ export function TeacherOverview({
             <div className="divide-y divide-border">
               {classes.map((c) => (
                 <div key={c.id} className="flex items-center gap-3 px-5 py-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-forest-soft text-forest">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest">
                     <Icon name="layers" size={16} />
                   </span>
                   <span className="flex-1 text-[13.5px] font-medium text-ink">{c.label}</span>

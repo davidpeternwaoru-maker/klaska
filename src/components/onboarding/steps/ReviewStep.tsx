@@ -34,15 +34,15 @@ export function ReviewStep({ school, classes, feeItemsCount, feeTotal, staff }: 
     <Card>
       <StepHead title="Review & finish" sub="Here's your setup. You can change any of this later in Settings." />
 
-      <div className="flex items-center gap-3 rounded-[12px] bg-secondary p-3">
+      <div className="flex items-center gap-3 rounded-[var(--radius-card)] bg-secondary p-3">
         {school.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={school.logoUrl} alt="logo" className="h-12 w-12 rounded-[10px] object-contain" />
+          <img src={school.logoUrl} alt="logo" className="h-12 w-12 rounded-[var(--radius-card)] object-contain" />
         ) : (
-          <span className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-forest font-display text-[15px] font-bold text-white">{(school.shortName || school.name).slice(0, 2).toUpperCase()}</span>
+          <span className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-card)] bg-forest font-display text-[15px] font-bold text-white">{(school.shortName || school.name).slice(0, 2).toUpperCase()}</span>
         )}
         <div>
-          <div className="text-[14px] font-semibold text-ink">{school.name}</div>
+          <div className="text-body font-semibold text-ink">{school.name}</div>
           {school.motto && <div className="text-[12px] italic text-ink-4">“{school.motto}”</div>}
         </div>
       </div>
@@ -64,7 +64,7 @@ export function ReviewStep({ school, classes, feeItemsCount, feeTotal, staff }: 
       {error && <p className="mt-3 text-[12.5px] font-medium text-red">{error}</p>}
 
       <div className="mt-5 flex items-center justify-end">
-        <button onClick={finish} disabled={pending} className="h-11 rounded-[10px] bg-forest px-6 text-[14px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+        <button onClick={finish} disabled={pending} className="h-11 rounded-[var(--radius-card)] bg-forest px-6 text-body font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
           {pending ? "Finishing…" : "Finish & enter Klaska →"}
         </button>
       </div>

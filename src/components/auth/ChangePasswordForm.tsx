@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/primitives";
 import { changeOwnPassword, type AccountState } from "@/lib/actions/account";
 
 const input =
-  "h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
+  "h-10 w-full rounded-[var(--radius-card)] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
 
 export function ChangePasswordForm() {
   const [state, action, pending] = useActionState<AccountState, FormData>(changeOwnPassword, {});
@@ -32,7 +32,7 @@ export function ChangePasswordForm() {
         {state.error && <p className="rounded-[8px] bg-red-soft px-3 py-2 text-[12.5px] font-medium text-red">{state.error}</p>}
         {state.ok && <p className="rounded-[8px] bg-green-soft px-3 py-2 text-[12.5px] font-medium text-green">Password changed. Use the new one next time you sign in. ✓</p>}
         <div>
-          <button disabled={pending} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+          <button disabled={pending} className="h-10 rounded-[var(--radius-card)] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
             {pending ? "Saving…" : "Change password"}
           </button>
         </div>

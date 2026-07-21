@@ -55,7 +55,7 @@ export function PlanSettings({
 
   return (
     <div className="flex flex-col gap-4">
-      {msg && <div className="rounded-[10px] bg-amber-soft px-3.5 py-2 text-[12.5px] font-medium text-amber-2">{msg}</div>}
+      {msg && <div className="rounded-[var(--radius-card)] bg-amber-soft px-3.5 py-2 text-[12.5px] font-medium text-amber-2">{msg}</div>}
 
       {/* plan cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -87,7 +87,7 @@ export function PlanSettings({
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-[14px] font-semibold text-ink">Multi-campus structure</div>
+            <div className="text-body font-semibold text-ink">Multi-campus structure</div>
             <div className="mt-0.5 text-[12.5px] text-ink-4">
               For large institutions — e.g. a Primary campus and a Secondary campus with distinct budgets under one owner.
             </div>
@@ -100,7 +100,7 @@ export function PlanSettings({
 
         {multiCampus && (
           <>
-            <div className="mt-4 flex flex-col divide-y divide-border rounded-[12px] border border-border">
+            <div className="mt-4 flex flex-col divide-y divide-border rounded-[var(--radius-card)] border border-border">
               {campuses.length === 0 && <div className="px-3 py-3 text-[12.5px] text-ink-4">No campuses yet — add your first below.</div>}
               {campuses.map((c) => (
                 <div key={c.id} className="flex items-center gap-3 px-3 py-2.5">
@@ -131,7 +131,7 @@ export function PlanSettings({
                 <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-4">Assign classes to campuses</div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {classes.map((k) => (
-                    <div key={k.id} className="flex items-center gap-2 rounded-[10px] border border-border px-3 py-2">
+                    <div key={k.id} className="flex items-center gap-2 rounded-[var(--radius-card)] border border-border px-3 py-2">
                       <span className="flex-1 truncate text-[12.5px] font-medium text-ink">{k.label}</span>
                       <select value={k.campusId ?? ""} onChange={(e) => assign(k.id, e.target.value)} className={input}>
                         <option value="">No campus</option>

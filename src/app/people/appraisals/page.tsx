@@ -21,7 +21,7 @@ export default async function Page() {
         <SectionTitle eyebrow="People" title="My appraisal" sub="Your own performance appraisal — only you, your head of department and school leadership can see it." />
         <Card>
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-forest-soft text-forest">
+            <span className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest">
               <Icon name="target" size={20} />
             </span>
             <div className="min-w-0 flex-1">
@@ -30,7 +30,7 @@ export default async function Page() {
             </div>
             {a.overall != null && a.band ? <Pill tone={a.band.tone}>{a.overall.toFixed(2)} · {a.band.label}</Pill> : <Pill tone={st.tone}>{st.label}</Pill>}
           </div>
-          <div className="mt-4 rounded-[12px] bg-secondary p-4 text-[13px] leading-relaxed text-ink-3">
+          <div className="mt-4 rounded-[var(--radius-card)] bg-secondary p-4 text-[13px] leading-relaxed text-ink-3">
             {a.overall != null ? (
               <>
                 Your current appraisal stands at <b className="text-ink">{a.overall.toFixed(2)} / 5.0</b> ({a.band?.label}). Your head of department and principal

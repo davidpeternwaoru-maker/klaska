@@ -29,7 +29,7 @@ function AddForm({ teachers }: { teachers: TeacherOption[] }) {
 
   return (
     <Card>
-      <div className="mb-3 text-[14px] font-semibold text-ink">Add a class</div>
+      <div className="mb-3 text-body font-semibold text-ink">Add a class</div>
       <form ref={ref} action={action} className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
@@ -69,7 +69,7 @@ export function ClassesManager({ classes, teachers }: { classes: ClassRow[]; tea
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
       <Card pad={0} className="overflow-hidden">
         <div className="flex items-center justify-between p-4">
-          <div className="text-[14px] font-semibold text-ink">Classes</div>
+          <div className="text-body font-semibold text-ink">Classes</div>
           <Pill tone="neutral">{classes.length}</Pill>
         </div>
         {classes.length === 0 ? (

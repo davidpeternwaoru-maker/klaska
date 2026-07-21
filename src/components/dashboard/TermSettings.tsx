@@ -10,7 +10,7 @@ import { saveTermInfo } from "@/lib/actions/onboarding";
 import { TERM_KEYS, TERM_LABEL, detectTerm, type TermKey } from "@/lib/terms";
 
 const input =
-  "h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
+  "h-10 w-full rounded-[var(--radius-card)] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
 
 export function TermSettings({
   initial,
@@ -78,7 +78,7 @@ export function TermSettings({
         <button onClick={useDetected} className="text-[12.5px] font-medium text-forest hover:underline">
           Use today&apos;s Nigerian calendar ({TERM_LABEL[detected.term]} · {detected.session})
         </button>
-        <button onClick={save} disabled={pending} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+        <button onClick={save} disabled={pending} className="h-10 rounded-[var(--radius-card)] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
           {pending ? "Saving…" : "Save changes"}
         </button>
       </div>

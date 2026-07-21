@@ -34,7 +34,7 @@ export function StructureStep({ sections, onSaved, onDone, ctaLabel }: { section
             <button
               key={s.key}
               onClick={() => toggle(s.key)}
-              className={`flex items-center gap-3 rounded-[14px] border p-4 text-left transition ${on ? "border-forest bg-forest-soft" : "border-border hover:bg-secondary"}`}
+              className={`flex items-center gap-3 rounded-[var(--radius-card)] border p-4 text-left transition ${on ? "border-forest bg-forest-soft" : "border-border hover:bg-secondary"}`}
             >
               <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-md border ${on ? "border-forest bg-forest text-white" : "border-border bg-card"}`}>
                 {on && <Icon name="check" size={14} />}

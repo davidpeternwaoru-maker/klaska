@@ -22,7 +22,7 @@ const hueOf = (s: string) => {
 function CountCard({ label, value, sub, icon }: { label: string; value: number; sub: string; icon: "students" | "layers" | "badge" }) {
   return (
     <Card hover className="flex items-center gap-3.5">
-      <span className="flex h-11 w-11 flex-none items-center justify-center rounded-[12px] bg-forest-soft text-forest">
+      <span className="flex h-11 w-11 flex-none items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest">
         <Icon name={icon} size={20} />
       </span>
       <div>
@@ -57,10 +57,10 @@ export function RealStudents({ students, classes, canManage = true }: { students
         sub="Your enrolled learners, live from your school's records."
         right={
           canManage ? <>
-            <Link href="/people/students/import" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <Link href="/people/students/import" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="download" size={15} style={{ transform: "rotate(180deg)" }} /> Import
             </Link>
-            <Link href="/people/students/manage" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+            <Link href="/people/students/manage" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
               <Icon name="plus" size={15} /> Add student
             </Link>
           </> : undefined
@@ -81,10 +81,10 @@ export function RealStudents({ students, classes, canManage = true }: { students
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search by name or admission no…"
-              className="h-9 w-full rounded-[10px] border border-transparent bg-secondary pl-9 pr-3 text-[13px] outline-none transition placeholder:text-ink-4 focus:border-forest-line focus:bg-card"
+              className="h-9 w-full rounded-[var(--radius-card)] border border-transparent bg-secondary pl-9 pr-3 text-[13px] outline-none transition placeholder:text-ink-4 focus:border-forest-line focus:bg-card"
             />
           </div>
-          <select value={classId} onChange={(e) => setClassId(e.target.value)} className="h-9 rounded-[10px] border border-border bg-secondary px-2.5 text-[13px] text-ink outline-none focus:border-forest-line focus:bg-card">
+          <select value={classId} onChange={(e) => setClassId(e.target.value)} className="h-9 rounded-[var(--radius-card)] border border-border bg-secondary px-2.5 text-[13px] text-ink outline-none focus:border-forest-line focus:bg-card">
             <option value="all">All classes</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>{c.label}</option>

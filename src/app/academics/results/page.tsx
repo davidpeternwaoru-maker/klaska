@@ -28,10 +28,10 @@ export default async function Page({
         sub="Enter CA1, CA2 and Exam per student — totals and grades are worked out automatically."
         right={
           <>
-            <Link href="/academics/subjects" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <Link href="/academics/subjects" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               Manage subjects
             </Link>
-            <Link href="/academics/report-cards" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+            <Link href="/academics/report-cards" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
               View report cards
             </Link>
           </>

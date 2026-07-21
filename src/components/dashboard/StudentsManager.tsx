@@ -86,7 +86,7 @@ function AddForm({ classes }: { classes: ClassOption[] }) {
 
   return (
     <Card>
-      <div className="mb-3 text-[14px] font-semibold text-ink">Add a student</div>
+      <div className="mb-3 text-body font-semibold text-ink">Add a student</div>
       <form ref={ref} action={action} className="flex flex-col gap-3">
         <Fields classes={classes} />
         {state.error && <p className="text-[12.5px] font-medium text-red">{state.error}</p>}
@@ -112,7 +112,7 @@ function EditModal({ student, classes, onClose }: { student: StudentRow; classes
       <div className="mt-10 w-full max-w-[560px]" onClick={(e) => e.stopPropagation()}>
         <Card>
           <div className="mb-3 flex items-center justify-between">
-            <div className="text-[14px] font-semibold text-ink">Edit student</div>
+            <div className="text-body font-semibold text-ink">Edit student</div>
             <button onClick={onClose} className="text-ink-4 hover:text-ink">
               <Icon name="x" size={18} />
             </button>
@@ -143,7 +143,7 @@ export function StudentsManager({ students, classes }: { students: StudentRow[];
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
       <Card pad={0} className="overflow-hidden">
         <div className="flex items-center justify-between p-4">
-          <div className="text-[14px] font-semibold text-ink">Students</div>
+          <div className="text-body font-semibold text-ink">Students</div>
           <Pill tone="neutral">{students.length}</Pill>
         </div>
         {students.length === 0 ? (

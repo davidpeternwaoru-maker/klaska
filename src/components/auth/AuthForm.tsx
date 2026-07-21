@@ -6,7 +6,7 @@
 import type { ReactNode } from "react";
 
 export const inputClass =
-  "h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none transition placeholder:text-ink-4 focus:border-forest-line focus:bg-card";
+  "h-10 w-full rounded-[var(--radius-card)] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none transition placeholder:text-ink-4 focus:border-forest-line focus:bg-card";
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -22,7 +22,7 @@ export function SubmitButton({ pending, children }: { pending: boolean; children
     <button
       type="submit"
       disabled={pending}
-      className="h-10 w-full rounded-[10px] bg-forest text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60"
+      className="h-10 w-full rounded-[var(--radius-card)] bg-forest text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60"
     >
       {pending ? "Please wait…" : children}
     </button>

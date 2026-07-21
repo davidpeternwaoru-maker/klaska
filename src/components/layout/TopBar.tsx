@@ -40,7 +40,7 @@ export function TopBar({ user }: { user?: TopBarUser }) {
         <Icon name="search" size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--color-ink-4)" }} />
         <input
           placeholder="Search students, classes, payments…"
-          className="h-9 w-full rounded-[10px] border border-transparent bg-secondary pl-9 pr-3 text-[13px] text-ink outline-none transition placeholder:text-ink-4 focus:border-forest-line focus:bg-card focus:shadow-[var(--ring-focus)]"
+          className="h-9 w-full rounded-[var(--radius-card)] border border-transparent bg-secondary pl-9 pr-3 text-[13px] text-ink outline-none transition placeholder:text-ink-4 focus:border-forest-line focus:bg-card focus:shadow-[var(--ring-focus)]"
         />
       </div>
 
@@ -48,7 +48,7 @@ export function TopBar({ user }: { user?: TopBarUser }) {
         <SyncIndicator />
         <Link
           href="/settings/notifications"
-          className="relative flex h-9 w-9 items-center justify-center rounded-[10px] text-ink-3 transition hover:bg-secondary"
+          className="relative flex h-9 w-9 items-center justify-center rounded-[var(--radius-card)] text-ink-3 transition hover:bg-secondary"
           title="Notifications"
         >
           <Icon name="bell" size={16} />
@@ -58,7 +58,7 @@ export function TopBar({ user }: { user?: TopBarUser }) {
 
         {/* user chip + menu (real account when logged in) */}
         <div ref={ref} className="relative">
-          <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2.5 rounded-[10px] py-1 pl-1 pr-2 transition hover:bg-secondary">
+          <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2.5 rounded-[var(--radius-card)] py-1 pl-1 pr-2 transition hover:bg-secondary">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest-soft font-display text-[12px] font-semibold text-forest">
               {initials(name)}
             </span>
@@ -70,7 +70,7 @@ export function TopBar({ user }: { user?: TopBarUser }) {
           </button>
 
           {open && (
-            <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-48 overflow-hidden rounded-[12px] border border-border bg-card shadow-[var(--shadow-3)]">
+            <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-48 overflow-hidden rounded-[var(--radius-card)] border border-border bg-card shadow-[var(--shadow-3)]">
               <Link href="/settings" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
                 <Icon name="settings" size={15} /> School settings
               </Link>

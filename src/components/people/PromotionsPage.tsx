@@ -76,7 +76,7 @@ export function PromotionsPage({ data: d }: { data: PromotionsData }) {
 
       {/* banner */}
       <Card className="mb-5 flex flex-wrap items-center gap-4">
-        <span className="flex h-12 w-12 flex-none items-center justify-center rounded-[14px] bg-forest text-white">
+        <span className="flex h-12 w-12 flex-none items-center justify-center rounded-[var(--radius-card)] bg-forest text-white">
           <Icon name="arrowU" size={22} />
         </span>
         <div className="min-w-0 flex-1">
@@ -184,7 +184,7 @@ function ReviewModal({ cls, pending, onClose, onApply }: { cls: PromoClass; pend
   const grad = cls.next === "Graduated";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="flex max-h-[86vh] w-full max-w-[620px] flex-col overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-3)]" onClick={(e) => e.stopPropagation()}>
+      <div className="flex max-h-[86vh] w-full max-w-[620px] flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-3)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <div className="font-display text-[16px] font-semibold text-ink">Review · {cls.klass}</div>
@@ -192,7 +192,7 @@ function ReviewModal({ cls, pending, onClose, onApply }: { cls: PromoClass; pend
               {cls.count} students · advancing to {cls.next}
             </div>
           </div>
-          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-[10px] text-ink-3 transition hover:bg-secondary">
+          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-card)] text-ink-3 transition hover:bg-secondary">
             <Icon name="x" size={17} />
           </button>
         </div>
@@ -206,7 +206,7 @@ function ReviewModal({ cls, pending, onClose, onApply }: { cls: PromoClass; pend
                   <span className="block truncate text-[13px] font-medium text-ink">{s.name}</span>
                   <span className="block text-[11.5px] text-ink-4">{cls.klass}</span>
                 </span>
-                <div className="flex gap-1 rounded-[10px] bg-secondary p-1">
+                <div className="flex gap-1 rounded-[var(--radius-card)] bg-secondary p-1">
                   {(["promote", "repeat"] as const).map((opt) => (
                     <button
                       key={opt}

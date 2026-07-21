@@ -137,7 +137,7 @@ export function RealOverview({
                 href={q.href}
                 className="group flex items-center gap-3 rounded-[var(--radius-card)] border border-border px-3 py-2.5 text-[13px] font-medium text-ink-2 transition-[background-color,border-color] duration-[var(--dur-fast)] hover:border-forest-line hover:bg-forest-soft/40 hover:text-ink"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-forest-soft text-forest transition-transform duration-[var(--dur-fast)] group-hover:scale-105">
+                <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest transition-transform duration-[var(--dur-fast)] group-hover:scale-105">
                   <Icon name={q.icon} size={15} />
                 </span>
                 {q.label}

@@ -25,7 +25,7 @@ export default async function Page() {
         title="Add & manage students"
         sub="Enrol students one by one, edit records, or remove them."
         right={
-          <Link href="/people/students/import" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+          <Link href="/people/students/import" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
             <Icon name="download" size={15} style={{ transform: "rotate(180deg)" }} /> Import from spreadsheet
           </Link>
         }

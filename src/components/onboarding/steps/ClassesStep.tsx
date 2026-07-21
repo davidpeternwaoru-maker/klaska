@@ -61,7 +61,7 @@ export function ClassesStep({
           {groups.map((g) => (
             <div key={g.section}>
               <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-4">{g.label}</div>
-              <div className="flex flex-col divide-y divide-border rounded-[12px] border border-border">
+              <div className="flex flex-col divide-y divide-border rounded-[var(--radius-card)] border border-border">
                 {g.levels.map((lv) => {
                   const row = rows[lv] ?? { create: !existingNames.has(lv), armsText: "" };
                   const exists = existingNames.has(lv);

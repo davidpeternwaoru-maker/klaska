@@ -57,7 +57,7 @@ export function RetentionPage({ data: d }: { data: RetentionData }) {
         <>
           <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
             <Card className="lg:col-span-2">
-              <div className="mb-5 flex items-center gap-2 text-[14px] font-semibold text-ink">
+              <div className="mb-5 flex items-center gap-2 text-body font-semibold text-ink">
                 Where students leave <span className="font-normal text-ink-4">— by last class</span>
               </div>
               <div className="flex flex-col gap-3.5">
@@ -75,7 +75,7 @@ export function RetentionPage({ data: d }: { data: RetentionData }) {
             </Card>
 
             <Card>
-              <div className="mb-3 text-[14px] font-semibold text-ink">Why they leave</div>
+              <div className="mb-3 text-body font-semibold text-ink">Why they leave</div>
               <div className="flex items-center gap-4">
                 <Donut data={d.reasonData} />
                 <div className="flex-1">
@@ -92,11 +92,11 @@ export function RetentionPage({ data: d }: { data: RetentionData }) {
           </div>
 
           <Card className="mt-5 flex items-start gap-3.5" style={{ background: "var(--color-amber-soft)", borderColor: "#f4ddb0" }}>
-            <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[12px] bg-white text-amber-2">
+            <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[var(--radius-card)] bg-white text-amber-2">
               <Icon name="sparkle" size={19} />
             </span>
             <div>
-              <div className="text-[14px] font-semibold text-amber-2">Owner insight</div>
+              <div className="text-body font-semibold text-amber-2">Owner insight</div>
               <p className="mt-1 text-[13px] text-ink-2">
                 {d.peak ? `Withdrawals peak at ${d.peak[0]} (${d.peak[1]} student${d.peak[1] === 1 ? "" : "s"}). ` : ""}
                 If the spike is financial around the JSS 3 → SSS 1 transition, introducing earlier installment plans could retain more students through to graduation.
@@ -111,7 +111,7 @@ export function RetentionPage({ data: d }: { data: RetentionData }) {
       )}
 
       <Card pad={0} className="mt-5 overflow-hidden">
-        <div className="p-5 text-[14px] font-semibold text-ink">Cohort detail</div>
+        <div className="p-5 text-body font-semibold text-ink">Cohort detail</div>
         {d.cohorts.length > 0 ? (
           <table className="w-full border-collapse text-[13px]">
             <thead>

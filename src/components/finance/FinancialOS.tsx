@@ -51,7 +51,7 @@ const CAT_COLORS: Record<string, string> = {
 const catLabel = (c: string) => c.charAt(0) + c.slice(1).toLowerCase();
 const CATS = ["SALARIES", "RENT", "UTILITIES", "SUPPLIES", "TRANSPORT", "MAINTENANCE", "OTHER"];
 
-const inputCls = "h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
+const inputCls = "h-10 w-full rounded-[var(--radius-card)] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card";
 
 /* ---------------- modals ---------------- */
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
@@ -104,8 +104,8 @@ function LogExpenseModal({ onClose }: { onClose: () => void }) {
         </label>
         {state.error && <p className="text-[12.5px] font-medium text-red">{state.error}</p>}
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-10 rounded-[10px] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">Cancel</button>
-          <button disabled={pending} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+          <button type="button" onClick={onClose} className="h-10 rounded-[var(--radius-card)] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">Cancel</button>
+          <button disabled={pending} className="h-10 rounded-[var(--radius-card)] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
             {pending ? "Saving…" : "Log expense"}
           </button>
         </div>
@@ -130,7 +130,7 @@ function TaxSummaryModal({ hero, slices, meta, onClose }: { hero: Hero; slices: 
       ))}
       <Row k="Total deductible expenses" v={`− ${ngn(deductible)}`} />
       <Row k="Net surplus (taxable basis)" v={ngn(hero.revenueTerm - deductible)} bold />
-      <p className="mt-3 rounded-[10px] bg-secondary p-3 text-[12px] text-ink-3">
+      <p className="mt-3 rounded-[var(--radius-card)] bg-secondary p-3 text-[12px] text-ink-3">
         Accountant-ready estimate from your recorded fees and expenses. Company income tax / PAYE rates depend on your registration — share this with your accountant for filing.
       </p>
     </Modal>
@@ -309,17 +309,17 @@ export function FinancialOS({
         sub="Revenue, cost, and profit all in one place. Updated as fees come in and expenses are logged."
         right={
           <>
-            <button onClick={() => setModal("tax")} className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <button onClick={() => setModal("tax")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="receipt" size={15} /> Tax summary
             </button>
             <button
               onClick={() => exportFinancialStatement(meta, { invoiced: hero.revenueTerm + 0, collected: hero.revenueTerm, outstanding: 0, expensesTotal: hero.costsTerm, net: hero.net }, payments.map((p) => ({ when: p.when, student: p.student, amount: p.amount, method: p.method, reference: p.reference })), expenses.map((e) => ({ when: e.date, category: e.category, description: e.description, amount: e.amount })))}
-              className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary"
+              className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary"
             >
               <Icon name="download" size={15} /> Export to Excel
             </button>
             {canEdit && (
-              <button onClick={() => setModal("expense")} className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+              <button onClick={() => setModal("expense")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
                 <Icon name="plus" size={15} /> Log expense
               </button>
             )}
@@ -327,7 +327,7 @@ export function FinancialOS({
         }
       />
 
-      {note && <div className="mb-3 rounded-[10px] bg-amber-soft px-3.5 py-2 text-[12.5px] font-medium text-amber-2">{note}</div>}
+      {note && <div className="mb-3 rounded-[var(--radius-card)] bg-amber-soft px-3.5 py-2 text-[12.5px] font-medium text-amber-2">{note}</div>}
 
       {/* dark hero band */}
       <div className="overflow-hidden rounded-[18px]" style={{ background: "linear-gradient(135deg,#17531c 0%,#0f3812 100%)" }}>
@@ -343,7 +343,7 @@ export function FinancialOS({
           </span>
           {hero.lastExpense && <span className="text-[12.5px] text-white/70">Last expense: {hero.lastExpense}</span>}
           {hero.lastPayment && <span className="text-[12.5px] text-white/70">Last payment: {hero.lastPayment}</span>}
-          <button onClick={() => setModal("pnl")} className="ml-auto inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-white/20">
+          <button onClick={() => setModal("pnl")} className="ml-auto inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-white/10 px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-white/20">
             View full P&L <Icon name="arrowR" size={14} />
           </button>
         </div>
@@ -400,18 +400,18 @@ export function FinancialOS({
             <Pill tone="amber">module coming</Pill>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-[12px] bg-secondary p-3">
+            <div className="rounded-[var(--radius-card)] bg-secondary p-3">
               <div className="text-[12px] text-ink-4">Teaching</div>
               <div className="font-display text-[20px] font-bold text-ink">{payroll.teaching}</div>
               <div className="text-[11.5px] text-ink-4">staff</div>
             </div>
-            <div className="rounded-[12px] bg-secondary p-3">
+            <div className="rounded-[var(--radius-card)] bg-secondary p-3">
               <div className="text-[12px] text-ink-4">Non-teaching</div>
               <div className="font-display text-[20px] font-bold text-ink">{payroll.nonTeaching}</div>
               <div className="text-[11.5px] text-ink-4">staff</div>
             </div>
           </div>
-          <div className="mt-3 rounded-[12px] border border-border p-3">
+          <div className="mt-3 rounded-[var(--radius-card)] border border-border p-3">
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-medium text-ink-2">Salaries logged this month</span>
               <span className="font-display text-[17px] font-bold text-ink">{ngn(payroll.salariesThisMonth)}</span>
@@ -419,8 +419,8 @@ export function FinancialOS({
             <div className="mt-1 text-[11.5px] text-ink-4">Log salary payments as “Salaries” expenses — full payslips & approvals arrive with the payroll module.</div>
           </div>
           <div className="mt-3 flex gap-2">
-            <button onClick={() => flash("Payslips arrive with the payroll module — coming soon.")} className="h-10 flex-1 rounded-[10px] border border-border text-[13px] font-medium text-ink-2 transition hover:bg-secondary">Review payslips</button>
-            <button onClick={() => flash("Payroll approval arrives with the payroll module — coming soon.")} className="h-10 flex-1 rounded-[10px] bg-forest text-[13px] font-semibold text-white transition hover:bg-forest-2">Approve payroll</button>
+            <button onClick={() => flash("Payslips arrive with the payroll module — coming soon.")} className="h-10 flex-1 rounded-[var(--radius-card)] border border-border text-[13px] font-medium text-ink-2 transition hover:bg-secondary">Review payslips</button>
+            <button onClick={() => flash("Payroll approval arrives with the payroll module — coming soon.")} className="h-10 flex-1 rounded-[var(--radius-card)] bg-forest text-[13px] font-semibold text-white transition hover:bg-forest-2">Approve payroll</button>
           </div>
         </Card>
       </div>
@@ -430,14 +430,14 @@ export function FinancialOS({
         <div className="flex flex-wrap items-center justify-between gap-3 p-4">
           <div className="text-[15px] font-semibold text-ink">Recent expenses</div>
           <div className="flex items-center gap-2">
-            <select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-9 rounded-[10px] border border-border bg-card px-2.5 text-[13px] text-ink outline-none focus:border-forest-line">
+            <select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-9 rounded-[var(--radius-card)] border border-border bg-card px-2.5 text-[13px] text-ink outline-none focus:border-forest-line">
               <option value="all">All categories</option>
               {CATS.map((c) => (
                 <option key={c} value={c}>{catLabel(c)}</option>
               ))}
             </select>
             {canEdit && (
-              <button onClick={() => setModal("expense")} className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+              <button onClick={() => setModal("expense")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
                 <Icon name="plus" size={15} /> Add expense
               </button>
             )}

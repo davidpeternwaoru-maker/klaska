@@ -30,7 +30,7 @@ export function StaffStep({ staff, onDone, ctaLabel = "Continue" }: { staff: Wiz
         {addedCount > 0 && <Pill tone="green">+{addedCount} added</Pill>}
       </div>
 
-      <form ref={ref} action={action} className="grid grid-cols-2 gap-3 rounded-[12px] border border-border p-3">
+      <form ref={ref} action={action} className="grid grid-cols-2 gap-3 rounded-[var(--radius-card)] border border-border p-3">
         <Field label="Full name *"><input name="name" required className={inputCls} /></Field>
         <Field label="Email (their login) *"><input name="email" type="email" required className={inputCls} /></Field>
         <Field label="Role">
@@ -55,7 +55,7 @@ export function StaffStep({ staff, onDone, ctaLabel = "Continue" }: { staff: Wiz
       </form>
 
       <div className="mt-5 flex items-center justify-end">
-        <button onClick={onDone} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2">
+        <button onClick={onDone} className="h-10 rounded-[var(--radius-card)] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2">
           {ctaLabel}
         </button>
       </div>

@@ -42,7 +42,7 @@ export function AIOutcomesView({ a }: { a: AIOutcomes }) {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* per-class readiness */}
         <Card>
-          <div className="mb-4 text-[14px] font-semibold text-ink">Readiness by class</div>
+          <div className="mb-4 text-body font-semibold text-ink">Readiness by class</div>
           <div className="flex flex-col gap-3">
             {a.byClass.map((c) => (
               <BarRow key={c.label} label={c.label} value={c.pct} max={100} sub={`${c.on}✓ ${c.border}• ${c.risk}!`} tone={c.pct >= 65 ? "forest" : c.pct >= 40 ? "amber" : "red"} />
@@ -57,7 +57,7 @@ export function AIOutcomesView({ a }: { a: AIOutcomes }) {
               <Icon name="sparkle" size={16} />
             </span>
             <div>
-              <div className="text-[14px] font-semibold text-ink">Suggested interventions</div>
+              <div className="text-body font-semibold text-ink">Suggested interventions</div>
               <div className="text-[11.5px] text-ink-4">Who needs help before it's too late — and what to do.</div>
             </div>
           </div>
@@ -89,7 +89,7 @@ export function AIOutcomesView({ a }: { a: AIOutcomes }) {
 
       {/* full table */}
       <Card pad={0} className="overflow-hidden">
-        <div className="p-4 text-[14px] font-semibold text-ink">Every student</div>
+        <div className="p-4 text-body font-semibold text-ink">Every student</div>
         <div className="max-h-[55vh] overflow-auto border-t border-border">
           <table className="w-full border-collapse text-[13px]">
             <thead className="sticky top-0 bg-card">

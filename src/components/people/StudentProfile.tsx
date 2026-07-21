@@ -48,10 +48,10 @@ export function StudentProfile({ data }: { data: ProfileData | null }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/people/promotions" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+          <Link href="/people/promotions" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
             <Icon name="arrowU" size={15} /> Promote
           </Link>
-          <Link href="/finance/fees" className="inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-3 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+          <Link href="/finance/fees" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
             <Icon name="fees" size={15} /> Record payment
           </Link>
         </div>
@@ -152,7 +152,7 @@ function AcademicsTab({ s }: { s: ProfileData }) {
   return (
     <Card pad={0} className="overflow-hidden">
       <div className="flex items-center justify-between p-5">
-        <div className="text-[14px] font-semibold text-ink">Current term results</div>
+        <div className="text-body font-semibold text-ink">Current term results</div>
         <div className="flex gap-2">
           <Pill tone="neutral">Average {a.average}%</Pill>
           {a.position > 0 && <Pill tone="forest">Position {a.position} of {a.classSize}</Pill>}
@@ -291,7 +291,7 @@ function HistoryTab({ s }: { s: ProfileData }) {
 function Stat({ label, value, tone }: { label: string; value: string; tone: "forest" | "amber" | "red" | "neutral" }) {
   const color = tone === "forest" ? "var(--color-forest)" : tone === "amber" ? "var(--color-amber-2)" : tone === "red" ? "var(--color-red)" : "var(--color-ink)";
   return (
-    <div className="rounded-[12px] bg-secondary p-4">
+    <div className="rounded-[var(--radius-card)] bg-secondary p-4">
       <div className="text-[11.5px] font-medium text-ink-4">{label}</div>
       <div className="mt-1 font-display text-[19px] font-bold tracking-[-0.02em]" style={{ color }}>
         {value}

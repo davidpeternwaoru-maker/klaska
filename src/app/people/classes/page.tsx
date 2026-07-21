@@ -41,7 +41,7 @@ export default async function Page() {
           <div className="divide-y divide-border">
             {rows.map((c) => (
               <div key={c.id} className="flex items-center gap-3 px-5 py-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-forest-soft text-forest">
+                <span className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest">
                   <Icon name="layers" size={16} />
                 </span>
                 <span className="flex-1 text-[13.5px] font-medium text-ink">{c.arm ? `${c.name} ${c.arm}` : c.name}</span>

@@ -56,7 +56,7 @@ export function OnboardingWizard({
       <div className="mx-auto max-w-[860px] px-4 py-8">
         {/* header */}
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-forest">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-card)] bg-forest">
             <KLogo size={22} white />
           </span>
           <div>

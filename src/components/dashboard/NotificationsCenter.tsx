@@ -20,7 +20,7 @@ const AUDIENCE_META: Record<string, { label: string; tone: "forest" | "amber" | 
 };
 
 const input =
-  "h-10 w-full rounded-[10px] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card placeholder:text-ink-4";
+  "h-10 w-full rounded-[var(--radius-card)] border border-border bg-secondary px-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card placeholder:text-ink-4";
 
 function Compose() {
   const [state, action, pending] = useActionState<ActionState, FormData>(sendNotice, {});
@@ -31,7 +31,7 @@ function Compose() {
 
   return (
     <Card>
-      <div className="text-[14px] font-semibold text-ink">Send a message</div>
+      <div className="text-body font-semibold text-ink">Send a message</div>
       <div className="mt-0.5 text-[12.5px] text-ink-4">To your staff, or a group message to every parent.</div>
       <form ref={ref} action={action} className="mt-4 flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
@@ -51,13 +51,13 @@ function Compose() {
         </div>
         <label className="block">
           <span className="mb-1 block text-[11.5px] font-medium text-ink-3">Message *</span>
-          <textarea name="body" required rows={4} placeholder="Type your message…" className="w-full rounded-[10px] border border-border bg-secondary p-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card placeholder:text-ink-4" />
+          <textarea name="body" required rows={4} placeholder="Type your message…" className="w-full rounded-[var(--radius-card)] border border-border bg-secondary p-3 text-[13.5px] text-ink outline-none focus:border-forest-line focus:bg-card placeholder:text-ink-4" />
         </label>
         {state.error && <p className="text-[12.5px] font-medium text-red">{state.error}</p>}
         {state.ok && <p className="text-[12.5px] font-medium text-green">Message recorded and queued. ✓</p>}
         <div className="flex items-center justify-between">
           <span className="text-[11.5px] text-ink-4">Stored in your school&apos;s log now · SMS/WhatsApp/email delivery connects in a later phase.</span>
-          <button disabled={pending} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
+          <button disabled={pending} className="h-10 rounded-[var(--radius-card)] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-60">
             {pending ? "Sending…" : "Send message"}
           </button>
         </div>
@@ -72,7 +72,7 @@ export function NotificationsCenter({ notices }: { notices: NoticeRow[] }) {
       <Compose />
       <Card pad={0} className="overflow-hidden">
         <div className="flex items-center justify-between p-5">
-          <div className="text-[14px] font-semibold text-ink">Sent messages</div>
+          <div className="text-body font-semibold text-ink">Sent messages</div>
           <Pill tone="neutral">{notices.length}</Pill>
         </div>
         {notices.length === 0 ? (

@@ -19,7 +19,7 @@ function AddForm() {
 
   return (
     <Card>
-      <div className="mb-3 text-[14px] font-semibold text-ink">Add a subject</div>
+      <div className="mb-3 text-body font-semibold text-ink">Add a subject</div>
       <form ref={ref} action={action} className="flex flex-col gap-3">
         <label className="block">
           <span className="mb-1 block text-[11.5px] font-medium text-ink-3">Subject name *</span>
@@ -46,7 +46,7 @@ export function SubjectsManager({ subjects }: { subjects: SubjectRow[] }) {
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
       <Card pad={0} className="overflow-hidden">
         <div className="flex items-center justify-between p-4">
-          <div className="text-[14px] font-semibold text-ink">Subjects</div>
+          <div className="text-body font-semibold text-ink">Subjects</div>
           <Pill tone="neutral">{subjects.length}</Pill>
         </div>
         {subjects.length === 0 ? (

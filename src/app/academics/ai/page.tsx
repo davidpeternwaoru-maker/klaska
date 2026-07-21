@@ -20,11 +20,11 @@ export default async function Page() {
       <div className="mx-auto max-w-[760px]">
         <SectionTitle eyebrow="Academics" title="AI Outcomes Engine" sub="Predictions, risk flags and intervention suggestions from your real scores and attendance." />
         <Card className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[14px] bg-forest-soft text-forest">✨</div>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest">✨</div>
           <div className="mt-3 text-[16px] font-semibold text-ink">An Enterprise feature</div>
           <p className="mx-auto mt-1 max-w-[440px] text-[13px] text-ink-3">The AI Outcomes Engine — exam readiness, at-risk flags and intervention plans — is part of the Enterprise plan, alongside multi-department analysis and cross-term insights.</p>
           {user.role === "OWNER" ? (
-            <Link href="/settings" className="mt-4 inline-flex items-center gap-1.5 rounded-[10px] bg-forest px-4 py-2.5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2">Switch plan in Settings →</Link>
+            <Link href="/settings" className="mt-4 inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-4 py-2.5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2">Switch plan in Settings →</Link>
           ) : (
             <p className="mt-4 text-[12.5px] text-ink-4">Ask your school owner to upgrade the plan.</p>
           )}

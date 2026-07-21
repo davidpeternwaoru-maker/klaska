@@ -48,7 +48,7 @@ function AddForm() {
 
   return (
     <Card>
-      <div className="mb-3 text-[14px] font-semibold text-ink">Add staff</div>
+      <div className="mb-3 text-body font-semibold text-ink">Add staff</div>
       <form ref={ref} action={action} className="flex flex-col gap-3">
         <label className="block">
           <span className="mb-1 block text-[11.5px] font-medium text-ink-3">Full name *</span>
@@ -106,7 +106,7 @@ function ResetModal({ staff, onClose }: { staff: StaffRow; onClose: () => void }
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="mt-16 w-full max-w-[420px]" onClick={(e) => e.stopPropagation()}>
         <Card>
-          <div className="mb-1 text-[14px] font-semibold text-ink">Reset password</div>
+          <div className="mb-1 text-body font-semibold text-ink">Reset password</div>
           <div className="mb-3 text-[12.5px] text-ink-4">
             Set a new password for <span className="font-medium text-ink-2">{staff.name}</span>. Share it with them; they can sign in immediately.
           </div>
@@ -141,7 +141,7 @@ export function StaffManager({ staff }: { staff: StaffRow[] }) {
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
       <Card pad={0} className="overflow-hidden">
         <div className="flex items-center justify-between p-4">
-          <div className="text-[14px] font-semibold text-ink">Staff</div>
+          <div className="text-body font-semibold text-ink">Staff</div>
           <Pill tone="neutral">{staff.length}</Pill>
         </div>
         <div className="overflow-x-auto">

@@ -67,7 +67,7 @@ export function Sidebar({ school, role }: { school: import("./AppShell").ShellSc
         className="z-20 flex w-[68px] flex-none flex-col items-center gap-1.5 py-4"
         style={{ background: "linear-gradient(180deg,#1d6322 0%,#143d18 100%)" }}
       >
-        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[12px] bg-white/[0.14] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]">
+        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[var(--radius-card)] bg-white/[0.14] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]">
           <KLogo size={24} white />
         </div>
 
@@ -82,7 +82,7 @@ export function Sidebar({ school, role }: { school: import("./AppShell").ShellSc
           ))}
         </nav>
 
-        <button className="flex h-10 w-10 items-center justify-center rounded-[12px] text-white/70 transition hover:bg-white/10" title="Help & guides">
+        <button className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-card)] text-white/70 transition hover:bg-white/10" title="Help & guides">
           <Icon name="sparkle" size={17} />
         </button>
       </aside>
@@ -100,7 +100,7 @@ export function Sidebar({ school, role }: { school: import("./AppShell").ShellSc
       >
         <div className="flex h-full w-[232px] flex-col p-3">
           {/* school switcher */}
-          <button className="flex w-full items-center gap-2.5 rounded-[12px] border border-border bg-card p-2.5 text-left transition hover:bg-secondary">
+          <button className="flex w-full items-center gap-2.5 rounded-[var(--radius-card)] border border-border bg-card p-2.5 text-left transition hover:bg-secondary">
             {school?.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={school.logoUrl} alt={displayName} className="h-8 w-8 flex-none rounded-[9px] object-contain" />
@@ -126,7 +126,7 @@ export function Sidebar({ school, role }: { school: import("./AppShell").ShellSc
                 const active = item.href === pathname;
                 const inner = (
                   <span
-                    className={`flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                    className={`flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2.5 text-[13px] font-medium transition-colors ${
                       active
                         ? "bg-forest text-white shadow-[0_4px_14px_-6px_rgba(27,94,32,0.5)]"
                         : "text-ink-2 hover:bg-secondary"
@@ -160,7 +160,7 @@ export function Sidebar({ school, role }: { school: import("./AppShell").ShellSc
           </div>
 
           {/* term progress — real school calendar when logged in */}
-          <div className="mt-auto rounded-[12px] border border-border bg-secondary/60 p-3">
+          <div className="mt-auto rounded-[var(--radius-card)] border border-border bg-secondary/60 p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[12px] font-medium text-ink-3">{school ? school.termLabel : "Term progress"}</span>
               <span className="text-[12px] font-semibold text-ink">
@@ -189,7 +189,7 @@ function RailIcon({ group, active, onClick }: { group: NavGroup; active: boolean
     <button
       onClick={onClick}
       title={group.label}
-      className={`group relative flex h-[52px] w-[52px] flex-col items-center justify-center gap-1 rounded-[14px] transition-[background,transform] duration-200 hover:scale-[1.05] ${
+      className={`group relative flex h-[52px] w-[52px] flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] transition-[background,transform] duration-200 hover:scale-[1.05] ${
         active ? "bg-white/[0.16] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]" : "text-white/65 hover:bg-white/10 hover:text-white"
       }`}
     >

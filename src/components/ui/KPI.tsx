@@ -35,7 +35,7 @@ export function KPI({
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-4">{label}</span>
         {icon && (
-          <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-secondary text-ink-3">
+          <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-card)] bg-secondary text-ink-3">
             <Icon name={icon} size={16} />
           </span>
         )}

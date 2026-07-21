@@ -26,7 +26,7 @@ export function FeePrefs({ initial }: { initial: { feeCollection: string; autoFe
     <Card className="mb-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-[14px] font-semibold text-ink">Fee collection</div>
+          <div className="text-body font-semibold text-ink">Fee collection</div>
           <div className="mt-0.5 text-[12.5px] text-ink-4">How your school records fee payments.</div>
         </div>
         <div className="flex items-center gap-2">

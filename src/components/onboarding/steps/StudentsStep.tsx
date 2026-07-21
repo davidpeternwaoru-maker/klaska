@@ -25,7 +25,7 @@ export function StudentsStep({ classes, onDone }: { classes: WizardClass[]; onDo
         <button onClick={onDone} className="text-[13px] font-medium text-ink-4 transition hover:text-ink">
           Skip for now →
         </button>
-        <button onClick={onDone} className="h-10 rounded-[10px] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2">
+        <button onClick={onDone} className="h-10 rounded-[var(--radius-card)] bg-forest px-5 text-[13.5px] font-semibold text-white transition hover:bg-forest-2">
           Continue
         </button>
       </div>

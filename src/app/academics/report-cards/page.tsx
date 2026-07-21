@@ -37,7 +37,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
         title="Report Cards"
         sub="Every student's printable terminal report — real scores, class averages, positions and your grading key."
         right={
-          <Link href="/academics/results" className="inline-flex items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+          <Link href="/academics/results" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
             Enter results
           </Link>
         }

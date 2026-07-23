@@ -142,51 +142,112 @@ function GuardiansTab({ s }: { s: ProfileData }) {
   );
 }
 
+const gradeTone = (g: string) => (g.startsWith("A") ? "green" : g.startsWith("F") ? "red" : "neutral") as "green" | "red" | "neutral";
+
 function AcademicsTab({ s }: { s: ProfileData }) {
   const a = s.academics;
-  if (a.subjects.length === 0) {
+  if (a.terms.length === 0) {
     return (
       <Card>
-        <p className="text-[13px] text-ink-4">No results recorded for this student this term yet.</p>
+        <p className="text-[13px] text-ink-4">No results recorded for this student yet.</p>
       </Card>
     );
   }
+  // group terms (already newest-session first) by session for headers
+  const bySession: { session: string; terms: ProfileData["academics"]["terms"] }[] = [];
+  for (const t of a.terms) {
+    const last = bySession[bySession.length - 1];
+    if (last && last.session === t.session) last.terms.push(t);
+    else bySession.push({ session: t.session, terms: [t] });
+  }
+
   return (
-    <Card pad={0} className="overflow-hidden">
-      <div className="flex items-center justify-between p-5">
-        <div className="text-body font-semibold text-ink">Current term results</div>
-        <div className="flex gap-2">
-          <Pill tone="neutral">Average {a.average}%</Pill>
-          {a.position > 0 && <Pill tone="forest">Position {a.position} of {a.classSize}</Pill>}
-        </div>
-      </div>
-      <table className="w-full border-collapse text-[13px]">
-        <thead>
-          <tr className="border-y border-border text-[11px] uppercase tracking-[0.05em] text-ink-4">
-            <th className="px-5 py-2.5 text-left font-medium">Subject</th>
-            <th className="px-3 py-2.5 text-right font-medium">CA1</th>
-            <th className="px-3 py-2.5 text-right font-medium">CA2</th>
-            <th className="px-3 py-2.5 text-right font-medium">Exam</th>
-            <th className="px-3 py-2.5 text-right font-medium">Total</th>
-            <th className="px-5 py-2.5 text-right font-medium">Grade</th>
-          </tr>
-        </thead>
-        <tbody>
-          {a.subjects.map((r) => (
-            <tr key={r.subject} className="border-b border-border last:border-0">
-              <td className="px-5 py-3 font-medium text-ink">{r.subject}</td>
-              <td className="px-3 py-3 text-right text-ink-3">{r.ca1}</td>
-              <td className="px-3 py-3 text-right text-ink-3">{r.ca2}</td>
-              <td className="px-3 py-3 text-right text-ink-3">{r.exam}</td>
-              <td className="px-3 py-3 text-right font-semibold text-ink">{r.total}</td>
-              <td className="px-5 py-3 text-right">
-                <Pill tone={r.grade.startsWith("A") ? "green" : r.grade.startsWith("F") ? "red" : "neutral"}>{r.grade}</Pill>
-              </td>
-            </tr>
+    <div className="flex flex-col gap-5">
+      {/* latest term detail */}
+      {a.subjects.length > 0 && (
+        <Card pad={0} className="overflow-hidden">
+          <div className="flex items-center justify-between p-5">
+            <div>
+              <div className="text-body font-semibold text-ink">Latest results</div>
+              <div className="text-[12px] text-ink-4">{a.currentLabel}</div>
+            </div>
+            <div className="flex gap-2">
+              <Pill tone="neutral">Average {a.average}%</Pill>
+              {a.position > 0 && <Pill tone="forest">Position {a.position} of {a.classSize}</Pill>}
+            </div>
+          </div>
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr className="border-y border-border text-[11px] uppercase tracking-[0.05em] text-ink-4">
+                <th className="px-5 py-2.5 text-left font-medium">Subject</th>
+                <th className="px-3 py-2.5 text-right font-medium">CA1</th>
+                <th className="px-3 py-2.5 text-right font-medium">CA2</th>
+                <th className="px-3 py-2.5 text-right font-medium">Exam</th>
+                <th className="px-3 py-2.5 text-right font-medium">Total</th>
+                <th className="px-5 py-2.5 text-right font-medium">Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {a.subjects.map((r) => (
+                <tr key={r.subject} className="border-b border-border last:border-0">
+                  <td className="px-5 py-3 font-medium text-ink">{r.subject}</td>
+                  <td className="px-3 py-3 text-right text-ink-3">{r.ca1}</td>
+                  <td className="px-3 py-3 text-right text-ink-3">{r.ca2}</td>
+                  <td className="px-3 py-3 text-right text-ink-3">{r.exam}</td>
+                  <td className="px-3 py-3 text-right font-semibold text-ink">{r.total}</td>
+                  <td className="px-5 py-3 text-right">
+                    <Pill tone={gradeTone(r.grade)}>{r.grade}</Pill>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {/* full academic record — every term, enrolment to date */}
+      <Card>
+        <div className="text-body font-semibold text-ink">Full academic record</div>
+        <div className="mb-4 mt-0.5 text-[12px] text-ink-4">Every term on record, newest first. Use “Generate transcript” above for the official signed document.</div>
+        <div className="flex flex-col gap-5">
+          {bySession.map((grp) => (
+            <div key={grp.session}>
+              <div className="mb-2 flex items-center gap-2.5">
+                <span className="text-[13px] font-semibold text-forest">{grp.session}</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <div className="flex flex-col gap-3">
+                {grp.terms.map((t) => (
+                  <div key={t.term} className="overflow-hidden rounded-[var(--radius-card)] border border-border">
+                    <div className="flex flex-wrap items-center justify-between gap-2 bg-secondary/50 px-4 py-2">
+                      <span className="text-[13px] font-medium text-ink">{t.termLabel} · {t.className}</span>
+                      <span className="flex gap-3 text-[12px] text-ink-4">
+                        <span>Avg <b className="text-ink">{t.average}</b></span>
+                        {t.position > 0 && <span>Position <b className="text-ink">{t.position}/{t.classSize}</b></span>}
+                        <span>{t.subjects.length} subjects</span>
+                      </span>
+                    </div>
+                    <table className="w-full border-collapse text-[12.5px]">
+                      <tbody>
+                        {t.subjects.map((sub) => (
+                          <tr key={sub.subject} className="border-t border-border">
+                            <td className="px-4 py-1.5 text-ink-2">{sub.subject}</td>
+                            <td className="px-3 py-1.5 text-right font-semibold text-ink">{sub.total}</td>
+                            <td className="w-16 px-4 py-1.5 text-right">
+                              <Pill tone={gradeTone(sub.grade)}>{sub.grade}</Pill>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
-    </Card>
+        </div>
+      </Card>
+    </div>
   );
 }
 

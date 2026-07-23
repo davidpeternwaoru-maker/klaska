@@ -7,6 +7,7 @@
 // already RBAC-scoped by the server; this only navigates within what's allowed.
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Card, Pill, Button, BarRow } from "@/components/ui/primitives";
 import { KPI } from "@/components/ui/KPI";
 import { Avatar } from "@/components/ui/Avatar";
@@ -122,10 +123,10 @@ export function AnalysisDrilldown({ data }: { data: DrilldownData }) {
               <div key={b.studentId} className="flex items-center gap-3">
                 <span className="w-5 text-center text-[13px] font-bold text-ink-4">{i + 1}</span>
                 <Avatar name={b.name} hue={hueOf(b.studentId)} size={30} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium text-ink">{b.name}</span>
+                <Link href={`/people/students/${b.studentId}`} className="min-w-0 flex-1 transition hover:text-forest">
+                  <span className="block truncate text-[13px] font-medium text-ink hover:text-forest">{b.name}</span>
                   <span className="block text-[11.5px] text-ink-4">{b.className}{b.department ? ` · ${b.department}` : ""}</span>
-                </span>
+                </Link>
                 <Pill tone={i === 0 ? "green" : "neutral"}>{b.average}</Pill>
               </div>
             ))}
@@ -141,9 +142,9 @@ export function AnalysisDrilldown({ data }: { data: DrilldownData }) {
           ) : (
             <div className="flex flex-col gap-2">
               {bundle.mostImproved.slice(0, 6).map((m) => (
-                <div key={m.name} className="flex items-center gap-3">
-                  <Avatar name={m.name} hue={hueOf(m.name)} size={30} />
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">{m.name}</span>
+                <div key={m.studentId} className="flex items-center gap-3">
+                  <Avatar name={m.name} hue={hueOf(m.studentId)} size={30} />
+                  <Link href={`/people/students/${m.studentId}`} className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink transition hover:text-forest">{m.name}</Link>
                   <span className="text-[12px] text-ink-4">{m.from} → {m.to}</span>
                   <Pill tone="green">+{m.delta}</Pill>
                 </div>
@@ -226,7 +227,9 @@ export function AnalysisDrilldown({ data }: { data: DrilldownData }) {
               {bundle.ranked.map((rk, i) => (
                 <tr key={rk.studentId} className="border-b border-border last:border-0 hover:bg-secondary/50">
                   <td className="px-5 py-2 text-ink-4">{i + 1}</td>
-                  <td className="px-5 py-2 font-medium text-ink">{rk.name}</td>
+                  <td className="px-5 py-2 font-medium text-ink">
+                    <Link href={`/people/students/${rk.studentId}`} className="transition hover:text-forest">{rk.name}</Link>
+                  </td>
                   <td className="px-5 py-2 text-ink-3">{rk.className}</td>
                   <td className="px-5 py-2 text-ink-3">{rk.department ?? "—"}</td>
                   <td className="px-5 py-2 text-right font-semibold text-ink">{rk.average}</td>

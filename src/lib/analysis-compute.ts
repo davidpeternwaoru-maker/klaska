@@ -10,7 +10,7 @@ export type Scope = { section?: string; level?: string; arm?: string; department
 export type RankedStudent = { studentId: string; name: string; average: number; className: string; department: string | null };
 export type SubjectStat = { subject: string; average: number; best: { name: string; total: number } | null };
 export type DeptBest = { department: string; best: { name: string; average: number } | null; ranked: RankedStudent[] };
-export type Improved = { name: string; from: number; to: number; delta: number };
+export type Improved = { studentId: string; name: string; from: number; to: number; delta: number };
 export type ChildNode = { key: string; label: string; dim: Dim; average: number; count: number };
 export type Dim = "section" | "level" | "arm" | "department" | "subject";
 
@@ -116,7 +116,7 @@ export function computeBundle(rows: AnalysisRow[], prevAvg: Record<string, numbe
   // most improved vs previous term
   const mostImproved: Improved[] = students
     .filter((s) => prevAvg[s.studentId] != null)
-    .map((s) => ({ name: s.name, from: prevAvg[s.studentId], to: s.average, delta: round(s.average - prevAvg[s.studentId]) }))
+    .map((s) => ({ studentId: s.studentId, name: s.name, from: prevAvg[s.studentId], to: s.average, delta: round(s.average - prevAvg[s.studentId]) }))
     .filter((s) => s.delta > 0)
     .sort((a, b) => b.delta - a.delta)
     .slice(0, 10);

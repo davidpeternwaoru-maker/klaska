@@ -22,6 +22,18 @@ function requireGenerate(ctx: Ctx) {
   if (!canManage(ctx.role, "transcripts")) throw new ServiceError("Only the owner, principal or admin officer can generate transcripts.");
 }
 
+/** Owner/HOS/Admin may issue any transcript; a teacher may issue one only for a
+ *  student in their OWN class. Everyone else is rejected — enforced server-side. */
+async function assertCanGenerate(ctx: Ctx, studentId: string) {
+  if (canManage(ctx.role, "transcripts")) return; // OWNER / HOS / ADMIN
+  if (ctx.role === "TEACHER") {
+    const own = await prisma.student.findFirst({ where: { id: studentId, schoolId: ctx.schoolId, class: { teacherId: ctx.staffId } }, select: { id: true } });
+    if (own) return;
+    throw new ServiceError("You can only generate transcripts for students in your own class.");
+  }
+  throw new ServiceError("Your role can't generate transcripts.");
+}
+
 /** Infer a class's section from its Level (authoritative, custom-label aware) or its name. */
 function sectionOfClass(name: string, levelSection: string | null): Section {
   if (levelSection === "SENIOR" || levelSection === "JUNIOR" || levelSection === "PRIMARY" || levelSection === "EARLY") return levelSection;
@@ -75,7 +87,7 @@ export type TranscriptData = {
 
 /** Available sections for a student (those they actually have results in) + identity — drives the modal. */
 export async function getTranscriptOptions(ctx: Ctx, studentId: string) {
-  requireGenerate(ctx);
+  await assertCanGenerate(ctx, studentId);
   const student = await prisma.student.findFirst({
     where: { id: studentId, schoolId: ctx.schoolId },
     include: { class: { include: { level: true } }, department: true },
@@ -124,8 +136,8 @@ export async function generateTranscript(
   ctx: Ctx,
   input: { studentId: string; section: Section; fromSession?: string | null; toSession?: string | null; remarks?: string | null },
 ): Promise<TranscriptData> {
-  requireGenerate(ctx);
   const { studentId, section } = input;
+  await assertCanGenerate(ctx, studentId);
 
   const [school, student, levels, bandsAll] = await Promise.all([
     prisma.school.findUnique({ where: { id: ctx.schoolId } }),

@@ -11,6 +11,18 @@ export const hueOf = (s: string) => {
 };
 
 export type ProfileSubject = { subject: string; ca1: number; ca2: number; exam: number; total: number; grade: string };
+export type TermRecord = {
+  session: string;
+  term: string;
+  termLabel: string;
+  levelLabel: string; // school's configured level label
+  arm: string | null;
+  className: string;
+  subjects: ProfileSubject[];
+  average: number;
+  position: number;
+  classSize: number;
+};
 export type ProfileData = {
   id: string;
   name: string;
@@ -26,7 +38,7 @@ export type ProfileData = {
   exitedOn: string | null;
   leftReason: string | null;
   guardian: { name: string; relation: string | null; phone: string | null; email: string | null } | null;
-  academics: { subjects: ProfileSubject[]; average: number; position: number; classSize: number };
+  academics: { subjects: ProfileSubject[]; average: number; position: number; classSize: number; currentLabel: string; terms: TermRecord[] };
   attendance: { rate: number; late: number; absent: number; recent: ("present" | "late" | "absent")[] };
   fees: { termFee: number; paid: number; outstanding: number; ledger: { term: string; due: number; paid: number; method: string; date: string }[] };
   history: { title: string; date: string; meta: string }[];
@@ -52,33 +64,82 @@ export async function getStudentProfile(user: SessionUser, id: string): Promise<
   });
   if (!student) return null;
 
-  const [results, attendance, invoices, events] = await Promise.all([
-    prisma.result.findMany({ where: { studentId: id, schoolId: user.schoolId }, include: { subject: true }, orderBy: { subject: { name: "asc" } } }),
+  const [school, results, attendance, invoices, events] = await Promise.all([
+    prisma.school.findUnique({ where: { id: user.schoolId }, select: { session: true, term: true } }),
+    prisma.result.findMany({ where: { studentId: id, schoolId: user.schoolId }, include: { subject: true } }),
     prisma.attendance.findMany({ where: { studentId: id, schoolId: user.schoolId }, orderBy: { date: "desc" } }),
     prisma.invoice.findMany({ where: { studentId: id, schoolId: user.schoolId }, include: { payments: { orderBy: { paidAt: "desc" } } }, orderBy: { createdAt: "desc" } }),
     prisma.studentEvent.findMany({ where: { studentId: id, schoolId: user.schoolId }, orderBy: { createdAt: "desc" } }),
   ]);
 
-  const subjects: ProfileSubject[] = results.map((r) => ({ subject: r.subject.name, ca1: r.ca1 ?? 0, ca2: r.ca2 ?? 0, exam: r.exam ?? 0, total: r.total ?? 0, grade: r.grade ?? "-" }));
-  const average = subjects.length ? Math.round(subjects.reduce((a, b) => a + b.total, 0) / subjects.length) : 0;
+  // Classes attended (level label + arm per term) and the cohort's results (for per-term positions).
+  const resultClassIds = [...new Set(results.map((r) => r.classId).filter(Boolean) as string[])];
+  const [resultClasses, cohort] = await Promise.all([
+    prisma.class.findMany({ where: { id: { in: resultClassIds } }, include: { level: true } }),
+    prisma.result.findMany({ where: { schoolId: user.schoolId, classId: { in: resultClassIds }, total: { not: null } }, select: { studentId: true, classId: true, session: true, term: true, total: true } }),
+  ]);
+  const classById = new Map(resultClasses.map((c) => [c.id, c]));
 
-  // Class position by term average.
-  let position = 0;
-  let classSize = 0;
-  if (student.classId) {
-    const classResults = await prisma.result.findMany({ where: { schoolId: user.schoolId, classId: student.classId }, select: { studentId: true, total: true } });
-    const byStudent = new Map<string, { sum: number; n: number }>();
-    for (const r of classResults) {
-      const e = byStudent.get(r.studentId) ?? { sum: 0, n: 0 };
-      e.sum += r.total ?? 0;
-      e.n++;
-      byStudent.set(r.studentId, e);
-    }
-    const ranked = [...byStudent.entries()].map(([sid, e]) => ({ sid, avg: e.n ? e.sum / e.n : 0 })).sort((a, b) => b.avg - a.avg);
-    classSize = ranked.length;
-    const idx = ranked.findIndex((r) => r.sid === id);
-    position = idx >= 0 ? idx + 1 : 0;
+  // (classId|session|term) -> per-student running average, for ranking each term.
+  const cohortKey = (c: string | null, se: string | null, t: string | null) => `${c}|${se}|${t}`;
+  const cohortMap = new Map<string, Map<string, { sum: number; n: number }>>();
+  for (const cr of cohort) {
+    const k = cohortKey(cr.classId, cr.session, cr.term);
+    const m = cohortMap.get(k) ?? new Map<string, { sum: number; n: number }>();
+    const e = m.get(cr.studentId) ?? { sum: 0, n: 0 };
+    e.sum += cr.total!;
+    e.n++;
+    m.set(cr.studentId, e);
+    cohortMap.set(k, m);
   }
+  const rankIn = (c: string | null, se: string | null, t: string | null): { position: number; classSize: number } => {
+    const m = cohortMap.get(cohortKey(c, se, t));
+    if (!m) return { position: 0, classSize: 0 };
+    const ranked = [...m.entries()].map(([sid, e]) => ({ sid, avg: e.sum / e.n })).sort((a, b) => b.avg - a.avg);
+    const idx = ranked.findIndex((r) => r.sid === id);
+    return { position: idx >= 0 ? idx + 1 : 0, classSize: ranked.length };
+  };
+
+  // Group the student's results into their full session -> term academic history.
+  const TERM_ORDER: Record<string, number> = { FIRST: 1, SECOND: 2, THIRD: 3 };
+  const termMap = new Map<string, { session: string; term: string; classId: string | null; rows: ProfileSubject[]; totals: number[] }>();
+  for (const r of results) {
+    const se = r.session ?? "—";
+    const t = r.term ?? "—";
+    const key = `${se}__${t}`;
+    const g = termMap.get(key) ?? { session: se, term: t, classId: r.classId, rows: [], totals: [] };
+    g.rows.push({ subject: r.subject.name, ca1: r.ca1 ?? 0, ca2: r.ca2 ?? 0, exam: r.exam ?? 0, total: r.total ?? 0, grade: r.grade ?? "-" });
+    if (r.total != null) g.totals.push(r.total);
+    termMap.set(key, g);
+  }
+  const terms: TermRecord[] = [...termMap.values()]
+    .map((g) => {
+      const c = g.classId ? classById.get(g.classId) : null;
+      const levelLabel = c?.level?.label || c?.level?.name || c?.name || "—";
+      const { position, classSize } = rankIn(g.classId, g.session, g.term);
+      g.rows.sort((a, b) => a.subject.localeCompare(b.subject));
+      return {
+        session: g.session,
+        term: g.term,
+        termLabel: TERM_LABEL[g.term] ?? g.term,
+        levelLabel,
+        arm: c?.arm ?? null,
+        className: c ? (c.arm ? `${levelLabel} ${c.arm}` : levelLabel) : "—",
+        subjects: g.rows,
+        average: g.totals.length ? Math.round(g.totals.reduce((a, b) => a + b, 0) / g.totals.length) : 0,
+        position,
+        classSize,
+      };
+    })
+    .sort((a, b) => (a.session === b.session ? (TERM_ORDER[a.term] ?? 9) - (TERM_ORDER[b.term] ?? 9) : b.session.localeCompare(a.session)));
+
+  // Current term = the school's active session/term (else the latest on record).
+  const current = terms.find((t) => t.session === school?.session && t.term === school?.term) ?? terms[0] ?? null;
+  const subjects: ProfileSubject[] = current?.subjects ?? [];
+  const average = current?.average ?? 0;
+  const position = current?.position ?? 0;
+  const classSize = current?.classSize ?? 0;
+  const currentLabel = current ? `${current.termLabel} · ${current.session}` : "";
 
   const totalDays = attendance.length;
   const present = attendance.filter((a) => a.status === "PRESENT").length;
@@ -125,10 +186,12 @@ export async function getStudentProfile(user: SessionUser, id: string): Promise<
       : student.guardianName
         ? { name: student.guardianName, relation: "Parent / Guardian", phone: student.guardianPhone, email: null }
         : null,
-    academics: { subjects, average, position, classSize },
+    academics: { subjects, average, position, classSize, currentLabel, terms },
     attendance: { rate, late, absent, recent },
     fees: { termFee, paid: paidNow, outstanding, ledger },
     history,
-    canGenerateTranscript: canManage(user.role, "transcripts"),
+    // Owner/HOS/Admin for anyone; a teacher only reaches their own students'
+    // profiles, and the transcript action re-checks ownership server-side.
+    canGenerateTranscript: canManage(user.role, "transcripts") || user.role === "TEACHER",
   };
 }

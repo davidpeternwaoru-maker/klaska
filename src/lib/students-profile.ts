@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import type { SessionUser } from "@/lib/auth/jwt";
+import { canManage } from "@/lib/auth/permissions";
 
 // Deterministic avatar tint from an id (same helper the students list uses).
 export const hueOf = (s: string) => {
@@ -29,6 +30,7 @@ export type ProfileData = {
   attendance: { rate: number; late: number; absent: number; recent: ("present" | "late" | "absent")[] };
   fees: { termFee: number; paid: number; outstanding: number; ledger: { term: string; due: number; paid: number; method: string; date: string }[] };
   history: { title: string; date: string; meta: string }[];
+  canGenerateTranscript: boolean; // OWNER / HOS / ADMIN — server-decided
 };
 
 const STATUS_MAP: Record<string, "active" | "graduated" | "left"> = { ACTIVE: "active", GRADUATED: "graduated", LEFT: "left" };
@@ -127,5 +129,6 @@ export async function getStudentProfile(user: SessionUser, id: string): Promise<
     attendance: { rate, late, absent, recent },
     fees: { termFee, paid: paidNow, outstanding, ledger },
     history,
+    canGenerateTranscript: canManage(user.role, "transcripts"),
   };
 }

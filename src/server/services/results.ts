@@ -74,8 +74,11 @@ export const resultsService = {
     if (!subject) throw new ServiceError("Subject not found.", "NOT_FOUND");
     if (!klass) throw new ServiceError("Class not found.", "NOT_FOUND");
     if (ctx.role === "TEACHER" && klass.teacherId !== ctx.staffId) throw new ServiceError("You can only enter results for your own class.");
+    // Results are now history: each belongs to a specific session + term, so a
+    // current term must be set (results accumulate instead of overwriting).
     const session = school?.session ?? null;
     const term = school?.term ?? null;
+    if (!session || !term) throw new ServiceError("Set your school's current session and term in Settings before entering results.", "INVALID");
 
     const valid = new Set((await prisma.student.findMany({ where: { schoolId: ctx.schoolId, classId }, select: { id: true } })).map((s) => s.id));
 
@@ -92,9 +95,9 @@ export const resultsService = {
       .filter((x) => x.hasAny)
       .map((x) =>
         prisma.result.upsert({
-          where: { studentId_subjectId: { studentId: x.e.studentId, subjectId } },
+          where: { studentId_subjectId_session_term: { studentId: x.e.studentId, subjectId, session, term } },
           create: { schoolId: ctx.schoolId, studentId: x.e.studentId, subjectId, classId, ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, session, term, recordedBy: ctx.staffId },
-          update: { ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, classId, session, term, recordedBy: ctx.staffId },
+          update: { ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, classId, recordedBy: ctx.staffId },
         }),
       );
     if (ops.length === 0) throw new ServiceError("Enter at least one score.", "INVALID");

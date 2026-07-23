@@ -106,6 +106,7 @@ model School {
   payrollRuns      PayrollRun[]
   appraisals       Appraisal[]
   notificationLogs NotificationLog[]
+  transcripts      Transcript[]
 }
 
 // One PERSON, many children (the guardian-student decoupling). The import
@@ -214,9 +215,12 @@ model Student {
   // Lifecycle — records are never deleted; status is set instead (§3).
   status          StudentStatus @default(ACTIVE)
   statusReason    String?
-  statusChangedAt DateTime?
+  statusChangedAt DateTime? // date of leaving / graduation when status != ACTIVE
   department      Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   departmentId    String?
+  // Official records: passport photo (inline data URL) + date first admitted.
+  photoUrl      String?   @db.Text
+  admittedAt    DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -227,6 +231,7 @@ model Student {
   enrollments Enrollment[]
   events      StudentEvent[]
   scores      Score[]
+  transcripts Transcript[]
 
   // Admission numbers are unique within a school (not globally).
   @@unique([schoolId, admissionNo])
@@ -301,9 +306,10 @@ model Result {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@unique([studentId, subjectId]) // one score per subject (per term, later)
+  @@unique([studentId, subjectId, session, term]) // one score per subject PER TERM (history accumulates)
   @@index([schoolId])
   @@index([subjectId, classId])
+  @@index([studentId, session, term])
 }
 
 // The school's grading scale. Bands are grouped by category so a school can
@@ -646,6 +652,30 @@ model Question {
   @@index([schoolId])
   @@index([subjectId])
   @@index([topicId])
+}
+
+// Audit record of every OFFICIAL TRANSCRIPT issued: who requested it, for whom,
+// which section, what coverage, when, and the unique serial. The document itself
+// is regenerated on demand — this row is the school's durable issuance trail.
+model Transcript {
+  id                 String   @id @default(cuid())
+  school             School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId           String
+  student            Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId          String
+  serial             String // unique per school, e.g. "TR-SMC-2026-0001"
+  section            String // SENIOR | JUNIOR | PRIMARY | EARLY
+  coverage           String // human label, e.g. "Full history" or "2023/2024–2025/2026"
+  sessionsCount      Int      @default(0)
+  requestedByStaffId String // snapshot — no FK so the audit row survives staff deletion
+  requestedByName    String
+  requestedByRole    String
+  remarks            String?  @db.Text
+  createdAt          DateTime @default(now())
+
+  @@unique([schoolId, serial])
+  @@index([schoolId, studentId])
+  @@index([schoolId, createdAt])
 }
 
 // ─────────────────────── Phase 1c: finance, HR & comms records ───────────────

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, Pill, Divider } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
+import { TranscriptDialog } from "./TranscriptDialog";
 import type { ProfileData } from "@/lib/students-profile";
 
 const STATUS_TONE = { active: "green", graduated: "blue", left: "amber" } as const;
@@ -48,6 +49,7 @@ export function StudentProfile({ data }: { data: ProfileData | null }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {s.canGenerateTranscript && <TranscriptDialog studentId={s.id} studentName={s.name} />}
           <Link href="/people/promotions" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
             <Icon name="arrowU" size={15} /> Promote
           </Link>

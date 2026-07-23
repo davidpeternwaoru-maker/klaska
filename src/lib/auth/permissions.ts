@@ -18,7 +18,8 @@ export type Area =
   | "settings"
   | "notifications"
   | "staff"
-  | "promotions";
+  | "promotions"
+  | "transcripts";
 
 type Level = "full" | "view" | "dept" | "own";
 
@@ -36,6 +37,9 @@ const MATRIX: Record<Area, Partial<Record<Role, Level>>> = {
   notifications: { OWNER: "full", HOS: "full", BURSAR: "full" },
   staff: { OWNER: "full", HOS: "view", BURSAR: "full" },
   promotions: { OWNER: "full", HOS: "full", ADMIN: "view" },
+  // Official transcripts: Owner, Principal/HOS and Admin Officer generate them.
+  // Bursar, HOD and Teacher have no access.
+  transcripts: { OWNER: "full", HOS: "full", ADMIN: "full" },
 };
 
 export function canView(role: Role, area: Area): boolean {

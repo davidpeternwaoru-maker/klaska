@@ -7,6 +7,9 @@ import type { FeeRow, ClassStat, FeeKpis } from "@/components/finance/FeesCollec
 import type { AnalysisRow } from "@/lib/analysis-drill";
 import { computeBundle, scopeFilter, type Scope } from "@/lib/analysis-compute";
 import type { FinancialStatements } from "@/server/services/statements";
+import { COMPETENCIES, type Appraisal } from "@/lib/appraisals/config";
+import { ROLE_LABEL } from "@/lib/auth/permissions";
+import type { Role } from "@/lib/auth/jwt";
 
 type Brand = { school: string; logoUrl?: string | null; term?: string | null; session?: string | null };
 
@@ -298,5 +301,169 @@ export function statementsReport(d: FinancialStatements, which: StatementKind): 
     title: kindTitle[which],
     brand: { school: d.meta.school, logoUrl: d.meta.logoUrl, term: d.meta.periodLabel, session: null },
     sheets,
+  };
+}
+
+// ── Fee defaulters ──────────────────────────────────────────────────────────
+export function defaultersReport(brand: Brand, rows: FeeRow[]): ReportSpec {
+  const owing = rows.filter((r) => r.paid < r.total).map((r) => ({ ...r, balance: r.total - r.paid })).sort((a, b) => b.balance - a.balance);
+  return {
+    fileName: `fee-defaulters-${brand.term ?? ""}`.replace(/\s+/g, "").toLowerCase() || "fee-defaulters",
+    title: "Fee Defaulters",
+    brand,
+    sheets: [
+      {
+        name: "Defaulters",
+        columns: [
+          { header: "Student", width: 26 },
+          { header: "Adm. no.", width: 14 },
+          { header: "Class", width: 16 },
+          { header: "Expected", format: "ngn", width: 15 },
+          { header: "Paid", format: "ngn", width: 15 },
+          { header: "Balance owed", format: "ngn", width: 16 },
+        ],
+        rows: [
+          ...owing.map<Row>((r) => ({ cells: [r.student, r.admissionNo ?? "—", r.className ?? "—", r.total, r.paid, { v: r.balance, tone: "neg" }] })),
+          { role: "total", cells: [`Total · ${owing.length} students owing`, "", "", owing.reduce((t, r) => t + r.total, 0), owing.reduce((t, r) => t + r.paid, 0), { v: owing.reduce((t, r) => t + r.balance, 0), tone: "neg" }] },
+        ],
+        note: "Students with an outstanding fee balance — for management use.",
+      },
+    ],
+  };
+}
+
+// ── Student directory ───────────────────────────────────────────────────────
+type DirStudent = { name: string; admissionNo: string | null; gender: string | null; className: string | null };
+export function studentDirectoryReport(brand: Brand, students: DirStudent[]): ReportSpec {
+  const sorted = [...students].sort((a, b) => (a.className ?? "~").localeCompare(b.className ?? "~") || a.name.localeCompare(b.name));
+  return {
+    fileName: "student-directory",
+    title: "Student Directory",
+    brand,
+    sheets: [
+      {
+        name: "All students",
+        columns: [{ header: "#", width: 5, align: "center" }, { header: "Student", width: 28 }, { header: "Adm. no.", width: 14 }, { header: "Class", width: 16 }, { header: "Sex", width: 8, align: "center" }],
+        rows: [
+          ...sorted.map<Row>((s, i) => ({ cells: [i + 1, s.name, s.admissionNo ?? "—", s.className ?? "Unassigned", s.gender === "M" ? "M" : s.gender === "F" ? "F" : "—"] })),
+          { role: "total", cells: ["", `Total · ${sorted.length} students`, "", "", ""] },
+        ],
+      },
+    ],
+  };
+}
+
+// ── Tax summary ─────────────────────────────────────────────────────────────
+export function taxReport(brand: Brand, revenue: number, expensesByCat: { category: string; amount: number }[], net: number): ReportSpec {
+  const deductible = expensesByCat.reduce((t, e) => t + e.amount, 0);
+  return {
+    fileName: `tax-summary-${brand.term ?? ""}`.replace(/\s+/g, "").toLowerCase() || "tax-summary",
+    title: "Tax Summary",
+    brand,
+    sheets: [
+      {
+        name: "Tax summary",
+        columns: [{ header: "Item", width: 34 }, { header: "Amount", format: "ngn", width: 18 }],
+        rows: [
+          { role: "section", cells: ["INCOME", null] },
+          { cells: ["Gross revenue (fees collected)", { v: revenue, tone: "pos" }] },
+          { role: "spacer", cells: [] },
+          { role: "section", cells: ["DEDUCTIBLE EXPENSES", null] },
+          ...expensesByCat.map<Row>((e) => ({ cells: [e.category, { v: e.amount, tone: "neg" }] })),
+          { role: "subtotal", cells: ["Total deductible expenses", { v: deductible, tone: "neg" }] },
+          { role: "spacer", cells: [] },
+          { role: "total", cells: ["Net surplus (taxable basis)", { v: net, tone: net >= 0 ? "pos" : "neg" }] },
+        ],
+        note: "Indicative tax basis for management use — to be confirmed with your accountant. Not a filed return.",
+      },
+    ],
+  };
+}
+
+// ── Staff appraisals ────────────────────────────────────────────────────────
+export function appraisalsReport(brand: Brand, board: Appraisal[]): ReportSpec {
+  const roster: Sheet = {
+    name: "Appraisal roster",
+    columns: [
+      { header: "Staff", width: 26 },
+      { header: "Role", width: 18 },
+      { header: "Department", width: 16 },
+      { header: "Overall", format: "num1", width: 10 },
+      { header: "Band", width: 20 },
+      { header: "Status", width: 18 },
+    ],
+    rows: [
+      ...board.map<Row>((a) => ({
+        cells: [
+          a.staff.name,
+          ROLE_LABEL[a.staff.role as Role] ?? a.staff.role,
+          a.staff.department ?? "—",
+          { v: a.overall ?? null, tone: a.overall != null && a.overall >= 3.5 ? "pos" : a.overall != null && a.overall < 2.5 ? "neg" : null },
+          a.band?.label ?? "—",
+          a.signed ? "Signed off" : a.status.replace(/_/g, " "),
+        ],
+      })),
+    ],
+    note: "360° staff appraisals — weighted overall out of 5.",
+  };
+
+  const competency: Sheet = {
+    name: "By competency",
+    columns: [{ header: "Staff", width: 24 }, ...COMPETENCIES.map((c) => ({ header: c.label.length > 16 ? c.label.slice(0, 14) + "…" : c.label, format: "num1" as const, width: 12 })), { header: "Overall", format: "num1", width: 10 }],
+    rows: board.map<Row>((a) => ({
+      cells: [a.staff.name, ...COMPETENCIES.map((c) => a.perComp.find((p) => p.id === c.id)?.weighted ?? null), { v: a.overall ?? null, tone: "pos" }],
+    })),
+  };
+
+  return { fileName: `staff-appraisals-${brand.term ?? ""}`.replace(/\s+/g, "").toLowerCase() || "staff-appraisals", title: "Staff Appraisals", brand, sheets: [roster, competency] };
+}
+
+// ── Payroll ─────────────────────────────────────────────────────────────────
+export function payrollReport(data: { school: string; session: string; termLabel: string; rows: { name: string; role: string; title: string | null; gross: number }[] }): ReportSpec {
+  const total = data.rows.reduce((t, r) => t + r.gross, 0);
+  return {
+    fileName: "payroll",
+    title: "Payroll — monthly",
+    brand: { school: data.school, term: data.termLabel, session: data.session },
+    sheets: [
+      {
+        name: "Payroll",
+        columns: [{ header: "Staff", width: 26 }, { header: "Role", width: 18 }, { header: "Job title", width: 22 }, { header: "Gross / month", format: "ngn", width: 16 }],
+        rows: [
+          ...data.rows.map<Row>((r) => ({ cells: [r.name, ROLE_LABEL[r.role as Role] ?? r.role, r.title ?? "—", { v: r.gross, tone: "pos" }] })),
+          { role: "total", cells: [`Total · ${data.rows.length} staff`, "", "", { v: total, tone: "pos" }] },
+        ],
+        note: "Gross monthly salaries on record — Owner & Bursar only.",
+      },
+    ],
+  };
+}
+
+// ── Attendance report ───────────────────────────────────────────────────────
+export function attendanceReport(data: { school: string; rows: { class: string; present: number; late: number; absent: number; excused: number; total: number; rate: number }[] }): ReportSpec {
+  const sum = (k: "present" | "late" | "absent" | "excused" | "total") => data.rows.reduce((t, r) => t + r[k], 0);
+  return {
+    fileName: "attendance-report",
+    title: "Attendance Report",
+    brand: { school: data.school },
+    sheets: [
+      {
+        name: "By class",
+        columns: [
+          { header: "Class", width: 18 },
+          { header: "Present", format: "int", width: 10 },
+          { header: "Late", format: "int", width: 8 },
+          { header: "Absent", format: "int", width: 10 },
+          { header: "Excused", format: "int", width: 10 },
+          { header: "Records", format: "int", width: 10 },
+          { header: "Rate", format: "pct", width: 10 },
+        ],
+        rows: [
+          ...data.rows.map<Row>((r) => ({ cells: [r.class, { v: r.present, tone: "pos" }, r.late, { v: r.absent, tone: r.absent > 0 ? "neg" : null }, r.excused, r.total, { v: r.rate, tone: r.rate >= 75 ? "pos" : r.rate < 50 ? "neg" : null }] })),
+          { role: "total", cells: ["All classes", { v: sum("present"), tone: "pos" }, sum("late"), { v: sum("absent"), tone: "neg" }, sum("excused"), sum("total"), { v: sum("total") ? Math.round(((sum("present") + sum("late")) / sum("total")) * 100) : 0 }] },
+        ],
+        note: "Attendance recorded across the period.",
+      },
+    ],
   };
 }

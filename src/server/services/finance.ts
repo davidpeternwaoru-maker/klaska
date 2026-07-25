@@ -6,7 +6,7 @@ import "server-only";
 // Bursar can touch money (Permission Matrix: fees / financial).
 
 import { prisma } from "@/lib/db";
-import { canManage } from "@/lib/auth/permissions";
+import { canManage, canView } from "@/lib/auth/permissions";
 import { detectTerm, TERM_LABEL, type TermKey } from "@/lib/terms";
 import { type Ctx, ServiceError } from "@/server/context";
 import type { FeeRow, ClassStat, FeeKpis } from "@/components/finance/FeesCollection";
@@ -95,6 +95,22 @@ export const financeService = {
   async deletePayment(ctx: Ctx, id: string): Promise<void> {
     if (!canManage(ctx.role, "fees")) throw new ServiceError("Only the owner or bursar can delete payments.");
     if (id) await prisma.payment.deleteMany({ where: { id, schoolId: ctx.schoolId } });
+  },
+
+  /** Staff payroll (gross monthly salaries) — Owner/Bursar only. */
+  async payroll(ctx: Ctx): Promise<{ school: string; session: string; termLabel: string; rows: { name: string; role: string; title: string | null; gross: number }[] }> {
+    if (!canView(ctx.role, "financial")) throw new ServiceError("Only the owner or bursar can view payroll.");
+    const fallback = detectTerm();
+    const [school, staff] = await Promise.all([
+      prisma.school.findUnique({ where: { id: ctx.schoolId }, select: { name: true, session: true, term: true } }),
+      prisma.staff.findMany({ where: { schoolId: ctx.schoolId }, orderBy: { name: "asc" }, select: { name: true, role: true, title: true, salaryMonthly: true } }),
+    ]);
+    return {
+      school: school?.name ?? "Your school",
+      session: school?.session ?? fallback.session,
+      termLabel: TERM_LABEL[(school?.term as TermKey) || fallback.term],
+      rows: staff.map((s) => ({ name: s.name, role: s.role, title: s.title, gross: s.salaryMonthly ?? 0 })),
+    };
   },
 
   async addExpense(ctx: Ctx, input: { category: string; description?: string | null; amount: number; spentAt?: string | null }): Promise<void> {

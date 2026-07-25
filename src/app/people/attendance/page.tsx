@@ -3,6 +3,7 @@ import { attendanceService } from "@/server/services/attendance";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { AttendanceControls } from "@/components/dashboard/AttendanceControls";
 import { AttendanceMarker } from "@/components/dashboard/AttendanceMarker";
+import { AttendanceExportButton } from "@/components/people/AttendanceExportButton";
 
 // Real attendance in the polished shell: pick a class + day, mark, save.
 export default async function Page({
@@ -17,7 +18,7 @@ export default async function Page({
 
   return (
     <div className="mx-auto max-w-[1100px]">
-      <SectionTitle eyebrow="People" title="Attendance" sub="Pick a class and a day, mark each pupil, and save. Reopening a day shows what you already saved." />
+      <SectionTitle eyebrow="People" title="Attendance" sub="Pick a class and a day, mark each pupil, and save. Reopening a day shows what you already saved." right={<AttendanceExportButton />} />
 
       {!hasClasses ? (
         <Card className="text-center text-[13px] text-ink-4">Create classes and add students first, then come back to mark attendance.</Card>

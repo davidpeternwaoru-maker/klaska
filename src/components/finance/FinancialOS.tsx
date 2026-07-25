@@ -13,8 +13,9 @@ import { Icon } from "@/components/ui/Icon";
 import { addExpense, deleteExpense, type ActionState } from "@/lib/actions/expenses";
 import { type ExportMeta } from "@/lib/export/real-exports";
 import { exportExcel, exportPdf } from "@/lib/export/engine";
-import { statementsReport, type StatementKind } from "@/lib/export/reports";
+import { statementsReport, taxReport, payrollReport, type StatementKind } from "@/lib/export/reports";
 import { financialStatementsAction } from "@/lib/actions/statements";
+import { payrollAction } from "@/lib/actions/report-data";
 
 /* ---------------- types ---------------- */
 export type MonthPoint = { label: string; revenue: number; cost: number };
@@ -211,6 +212,21 @@ function TaxSummaryModal({ hero, slices, meta, onClose }: { hero: Hero; slices: 
       <p className="mt-3 rounded-[var(--radius-card)] bg-secondary p-3 text-[12px] text-ink-3">
         Accountant-ready estimate from your recorded fees and expenses. Company income tax / PAYE rates depend on your registration — share this with your accountant for filing.
       </p>
+      <div className="mt-4 flex justify-end gap-2">
+        {(() => {
+          const rep = () => taxReport({ school: meta.school, term: meta.termLabel, session: meta.session }, hero.revenueTerm, slices.map((s) => ({ category: catLabel(s.category), amount: s.amount })), hero.revenueTerm - deductible);
+          return (
+            <>
+              <button onClick={() => exportPdf(rep())} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+                <Icon name="reports" size={15} /> PDF
+              </button>
+              <button onClick={() => exportExcel(rep())} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+                <Icon name="download" size={15} /> Export Excel
+              </button>
+            </>
+          );
+        })()}
+      </div>
     </Modal>
   );
 }
@@ -392,6 +408,9 @@ export function FinancialOS({
             </button>
             <button onClick={() => setModal("statements")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="reports" size={15} /> Financial statements
+            </button>
+            <button onClick={async () => { const r = await payrollAction(); if (r.ok) await exportExcel(payrollReport(r.data)); else flash(r.error); }} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+              <Icon name="badge" size={15} /> Payroll
             </button>
             {canEdit && (
               <button onClick={() => setModal("expense")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">

@@ -21,6 +21,35 @@ export type MarkerData = {
 };
 
 export const attendanceService = {
+  /** Per-class attendance summary for a report (role-scoped: teachers → own classes). */
+  async report(ctx: Ctx): Promise<{ school: string; rows: { class: string; present: number; late: number; absent: number; excused: number; total: number; rate: number }[] }> {
+    const classes = await prisma.class.findMany({ where: classScopeWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] });
+    const classIds = classes.map((c) => c.id);
+    const [school, grouped] = await Promise.all([
+      prisma.school.findUnique({ where: { id: ctx.schoolId }, select: { name: true } }),
+      prisma.attendance.groupBy({ by: ["classId", "status"], where: { schoolId: ctx.schoolId, classId: { in: classIds } }, _count: { _all: true } }),
+    ]);
+    const by = new Map<string, { present: number; late: number; absent: number; excused: number }>();
+    for (const g of grouped) {
+      if (!g.classId) continue;
+      const e = by.get(g.classId) ?? { present: 0, late: 0, absent: 0, excused: 0 };
+      const n = g._count._all;
+      if (g.status === "PRESENT") e.present += n;
+      else if (g.status === "LATE") e.late += n;
+      else if (g.status === "ABSENT") e.absent += n;
+      else e.excused += n;
+      by.set(g.classId, e);
+    }
+    return {
+      school: school?.name ?? "Your school",
+      rows: classes.map((c) => {
+        const e = by.get(c.id) ?? { present: 0, late: 0, absent: 0, excused: 0 };
+        const total = e.present + e.late + e.absent + e.excused;
+        return { class: classLabel(c), present: e.present, late: e.late, absent: e.absent, excused: e.excused, total, rate: total ? Math.round(((e.present + e.late) / total) * 100) : 0 };
+      }),
+    };
+  },
+
   /** Everything the marker screen needs for a chosen class + day. */
   async marker(ctx: Ctx, params: { classId?: string; date?: string }): Promise<MarkerData> {
     const today = new Date().toISOString().slice(0, 10);

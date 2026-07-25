@@ -9,6 +9,8 @@ import Link from "next/link";
 import { Card, SectionTitle, Pill } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
+import { exportExcel } from "@/lib/export/engine";
+import { studentDirectoryReport } from "@/lib/export/reports";
 
 type Student = { id: string; name: string; admissionNo: string | null; gender: string | null; classId: string | null; className: string | null };
 type ClassOpt = { id: string; label: string };
@@ -34,7 +36,7 @@ function CountCard({ label, value, sub, icon }: { label: string; value: number; 
   );
 }
 
-export function RealStudents({ students, classes, canManage = true }: { students: Student[]; classes: ClassOpt[]; canManage?: boolean }) {
+export function RealStudents({ students, classes, canManage = true, school = "" }: { students: Student[]; classes: ClassOpt[]; canManage?: boolean; school?: string }) {
   const [q, setQ] = useState("");
   const [classId, setClassId] = useState("all");
 
@@ -90,6 +92,12 @@ export function RealStudents({ students, classes, canManage = true }: { students
               <option key={c.id} value={c.id}>{c.label}</option>
             ))}
           </select>
+          <button
+            onClick={() => exportExcel(studentDirectoryReport({ school }, filtered.map((s) => ({ name: s.name, admissionNo: s.admissionNo, gender: s.gender, className: s.className }))))}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3 text-[13px] font-medium text-ink-2 transition hover:bg-secondary"
+          >
+            <Icon name="download" size={15} /> Directory
+          </button>
         </div>
 
         {filtered.length === 0 ? (

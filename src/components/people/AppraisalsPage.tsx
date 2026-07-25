@@ -11,7 +11,8 @@ import type { Role } from "@/lib/auth/jwt";
 import { COMPETENCIES, RATERS, SCALE, STATUS_META, type Appraisal, type RaterId } from "@/lib/appraisals/config";
 import type { AppraisalMeta } from "@/lib/appraisals";
 import { saveRatingAction, signOffAction, reopenAction } from "@/lib/actions/appraisals";
-import { exportAppraisalsExcel, exportAppraisalsPDF } from "@/lib/export/exporters";
+import { exportExcel, exportPdf } from "@/lib/export/engine";
+import { appraisalsReport } from "@/lib/export/reports";
 
 const roleName = (r: string) => ROLE_LABEL[r as Role] ?? r;
 
@@ -35,9 +36,9 @@ export function AppraisalsPage({ board, meta, canSignoff }: { board: Appraisal[]
   async function runExport(kind: "xlsx" | "pdf") {
     setBusy(kind);
     try {
-      const school = { name: meta.school, term: meta.term, session: meta.session };
-      if (kind === "xlsx") await exportAppraisalsExcel(board, school, meta.cycle);
-      else await exportAppraisalsPDF(board, school, meta.cycle);
+      const spec = appraisalsReport({ school: meta.school, term: meta.term, session: meta.session }, board);
+      if (kind === "xlsx") await exportExcel(spec);
+      else await exportPdf(spec);
     } finally {
       setBusy(null);
     }

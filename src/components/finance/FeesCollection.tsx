@@ -13,7 +13,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { generateInvoices, recordPayment, type FinanceState } from "@/lib/actions/finance";
 import { type ExportMeta } from "@/lib/export/real-exports";
 import { exportExcel, exportPdf } from "@/lib/export/engine";
-import { feesReport } from "@/lib/export/reports";
+import { feesReport, defaultersReport } from "@/lib/export/reports";
 
 export type FeeRow = {
   id: string; // invoice id
@@ -314,6 +314,9 @@ export function FeesCollection({
             </button>
             <button onClick={() => exportPdf(feesReport({ school: meta.school, term: meta.termLabel, session: meta.session }, rows, classStats, kpis))} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="reports" size={15} /> PDF
+            </button>
+            <button onClick={() => exportExcel(defaultersReport({ school: meta.school, term: meta.termLabel, session: meta.session }, rows))} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+              <Icon name="alert" size={15} /> Defaulters
             </button>
             <button onClick={() => flash("Pay links arrive with virtual collection — coming soon.")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="bell" size={15} /> Send pay link

@@ -5,9 +5,9 @@ import "server-only";
 // school-meta + class queries so the pages hold no prisma of their own.
 
 import { prisma } from "@/lib/db";
-import { buildSchoolAnalysis } from "@/lib/analysis";
-import { buildAIOutcomes } from "@/lib/ai-real";
-import { buildClassCards } from "@/lib/reportcard";
+import { buildSchoolAnalysis } from "@/server/services/analysis";
+import { buildAIOutcomes } from "@/server/services/ai-real";
+import { buildClassCards } from "@/server/services/reportcard";
 import { hasFeature } from "@/lib/tier";
 import { detectTerm, TERM_LABEL, fmtShortDate, type TermKey } from "@/lib/terms";
 import { type Ctx, classScopeWhere } from "@/server/context";

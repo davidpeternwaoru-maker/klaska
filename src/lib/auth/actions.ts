@@ -7,6 +7,8 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { parseForm } from "@/lib/validation";
+import { loginSchema, signupSchema } from "@/lib/schemas";
 import { hashPassword, verifyPassword } from "./password";
 import { createSession, destroySession } from "./session";
 
@@ -14,13 +16,9 @@ export type AuthState = { error?: string };
 
 /** Create a brand-new school and its first user (the OWNER), then log them in. */
 export async function signupSchool(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const name = String(formData.get("name") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim() || null; // their role at the school
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-
-  if (!name || !email) return { error: "Please fill in every field." };
-  if (password.length < 6) return { error: "Password must be at least 6 characters." };
+  const parsed = parseForm(signupSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { name, title, email, password } = parsed.data;
 
   const existing = await prisma.staff.findUnique({ where: { email } });
   if (existing) return { error: "An account with that email already exists." };
@@ -32,7 +30,7 @@ export async function signupSchool(_prev: AuthState, formData: FormData): Promis
     data: {
       name: "", // set in the wizard's first step
       staff: {
-        create: { name, title, email, passwordHash: await hashPassword(password), role: "OWNER" },
+        create: { name, title: title ?? null, email, passwordHash: await hashPassword(password), role: "OWNER" },
       },
     },
     include: { staff: true },
@@ -45,8 +43,9 @@ export async function signupSchool(_prev: AuthState, formData: FormData): Promis
 
 /** Log an existing staff member in. */
 export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
+  const parsed = parseForm(loginSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { email, password } = parsed.data;
 
   const staff = await prisma.staff.findUnique({ where: { email }, include: { school: { select: { setupCompletedAt: true } } } });
   // Same generic message whether the email is unknown or the password is wrong,

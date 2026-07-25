@@ -1,5 +1,5 @@
 import { requireAccess } from "@/server/context";
-import { getStudentProfile } from "@/lib/students-profile";
+import { getStudentProfile } from "@/server/services/students-profile";
 import { StudentProfile } from "@/components/people/StudentProfile";
 
 // Next 16: dynamic route params are async.

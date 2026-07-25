@@ -7,7 +7,7 @@ import { Card, Pill, BarRow } from "@/components/ui/primitives";
 import { KPI } from "@/components/ui/KPI";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
-import type { AIOutcomes, RiskCat } from "@/lib/ai-real";
+import type { AIOutcomes, RiskCat } from "@/server/services/ai-real";
 
 const CAT_META: Record<RiskCat, { label: string; tone: "green" | "amber" | "red" }> = {
   on: { label: "On track", tone: "green" },

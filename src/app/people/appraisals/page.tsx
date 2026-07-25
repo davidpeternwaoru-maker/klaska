@@ -1,6 +1,6 @@
 import { requireAccess } from "@/server/context";
 import { AppraisalWorkspace } from "@/components/people/AppraisalsPage";
-import { getAppraisalsBoard, getOwnAppraisal } from "@/lib/appraisals";
+import { getAppraisalsBoard, getOwnAppraisal } from "@/server/services/appraisals-read";
 
 export const metadata = { title: "Appraisals · Klaska" };
 

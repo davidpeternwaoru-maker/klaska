@@ -14,7 +14,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { canView } from "@/lib/auth/permissions";
-import { editableRaterFor } from "@/lib/appraisals";
+import { editableRaterFor } from "@/server/services/appraisals-read";
 import { COMP_IDS, overallOf, type RaterId } from "@/lib/appraisals/config";
 import { type Ctx, ServiceError } from "@/server/context";
 

@@ -7,13 +7,14 @@
 // connection across reloads. In production a fresh client is created once.
 
 import { PrismaClient } from "@prisma/client";
+import { env, isProd } from "@/env";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    log: env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (!isProd) globalForPrisma.prisma = prisma;

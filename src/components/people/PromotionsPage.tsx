@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, SectionTitle, Pill, Button } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
-import type { PromotionsData, PromoClass } from "@/lib/promotions";
+import type { PromotionsData, PromoClass } from "@/server/services/promotions";
 import { promoteClassAction, promoteStudentsAction, runEndOfSessionAction } from "@/lib/actions/promotions";
 
 type Mode = "promote" | "hold" | "repeat";

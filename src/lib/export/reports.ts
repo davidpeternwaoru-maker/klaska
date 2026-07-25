@@ -4,7 +4,7 @@
 
 import type { ReportSpec, Sheet, Row } from "./engine";
 import type { FeeRow, ClassStat, FeeKpis } from "@/components/finance/FeesCollection";
-import type { AnalysisRow } from "@/lib/analysis-drill";
+import type { AnalysisRow } from "@/server/services/analysis-drill";
 import { computeBundle, scopeFilter, type Scope } from "@/lib/analysis-compute";
 import type { FinancialStatements } from "@/server/services/statements";
 import { COMPETENCIES, RATER_IDS, RATER_LABEL, type Appraisal } from "@/lib/appraisals/config";

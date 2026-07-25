@@ -8,7 +8,7 @@
 import { Button } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { KLogo } from "@/components/ui/Icon";
-import type { StudentCardData, Band } from "@/lib/reportcard";
+import type { StudentCardData, Band } from "@/server/services/reportcard";
 
 export type CardSchool = {
   name: string;

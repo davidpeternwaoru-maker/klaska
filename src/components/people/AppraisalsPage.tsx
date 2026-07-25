@@ -18,7 +18,7 @@ import {
   type RaterId,
   type Tone,
 } from "@/lib/appraisals/config";
-import type { AppraisalMeta } from "@/lib/appraisals";
+import type { AppraisalMeta } from "@/server/services/appraisals-read";
 import { saveRatingAction } from "@/lib/actions/appraisals";
 import { exportExcel, exportPdf } from "@/lib/export/engine";
 import { appraisalsReport } from "@/lib/export/reports";

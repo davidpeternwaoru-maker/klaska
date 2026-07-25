@@ -3,7 +3,7 @@
 import { Card, SectionTitle, Pill } from "@/components/ui/primitives";
 import { KPI } from "@/components/ui/KPI";
 import { Icon } from "@/components/ui/Icon";
-import type { RetentionData } from "@/lib/insights";
+import type { RetentionData } from "@/server/services/insights";
 
 function Donut({ data, size = 150 }: { data: { label: string; value: number; color: string }[]; size?: number }) {
   const segs = data.filter((d) => d.value > 0);

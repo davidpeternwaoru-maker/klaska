@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { canManage } from "@/lib/auth/permissions";
-import { promoteClassCore, promoteStudentsCore, runEndOfSessionCore, type PromoResult } from "@/lib/promotions";
+import { promoteClassCore, promoteStudentsCore, runEndOfSessionCore, type PromoResult } from "@/server/services/promotions";
 
 const DENY: PromoResult = { error: "Only the owner or principal runs promotions." };
 

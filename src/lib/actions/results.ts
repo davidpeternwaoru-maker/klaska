@@ -6,6 +6,8 @@
 import { revalidatePath } from "next/cache";
 import { requireCtx, ServiceError } from "@/server/context";
 import { resultsService } from "@/server/services/results";
+import { parse } from "@/lib/validation";
+import { saveResultsSchema } from "@/lib/schemas";
 import type { SaveResultsResult } from "@/lib/results";
 
 export type ActionState = { error?: string; ok?: boolean };
@@ -46,8 +48,10 @@ export async function saveResults(
   entries: { studentId: string; ca1?: unknown; ca2?: unknown; exam?: unknown; subjectRemark?: unknown }[],
 ): Promise<SaveResultsResult> {
   const ctx = await requireCtx();
+  const parsed = parse(saveResultsSchema, { subjectId, classId, entries });
+  if (!parsed.ok) return { error: parsed.error };
   try {
-    const saved = await resultsService.save(ctx, subjectId, classId, entries);
+    const saved = await resultsService.save(ctx, parsed.data.subjectId, parsed.data.classId, parsed.data.entries);
     revalidatePath("/dashboard/results");
     revalidatePath("/academics/results");
     return { ok: true, saved };

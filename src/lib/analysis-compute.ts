@@ -3,7 +3,7 @@
 // improved, subject averages, weakest, full ranked list, and the drill-down
 // children). Shared by the drill-down UI and the exporters so they never drift.
 
-import type { AnalysisRow } from "@/lib/analysis-drill";
+import type { AnalysisRow } from "@/server/services/analysis-drill";
 
 export type Scope = { section?: string; level?: string; arm?: string; department?: string; subject?: string };
 

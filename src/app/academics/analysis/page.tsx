@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAccess } from "@/server/context";
-import { getDrilldownData } from "@/lib/analysis-drill";
+import { getDrilldownData } from "@/server/services/analysis-drill";
 import { SectionTitle } from "@/components/ui/primitives";
 import { AnalysisDrilldown } from "@/components/academics/AnalysisDrilldown";
 

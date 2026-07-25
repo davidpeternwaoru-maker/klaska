@@ -12,7 +12,7 @@ import { Card, Pill, Button, BarRow } from "@/components/ui/primitives";
 import { KPI } from "@/components/ui/KPI";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
-import type { DrilldownData } from "@/lib/analysis-drill";
+import type { DrilldownData } from "@/server/services/analysis-drill";
 import { computeBundle, type Dim, type Scope } from "@/lib/analysis-compute";
 import { exportExcel, exportPdf } from "@/lib/export/engine";
 import { analysisReport } from "@/lib/export/reports";

@@ -6,7 +6,7 @@ import { Card, Pill, Divider } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { TranscriptDialog } from "./TranscriptDialog";
-import type { ProfileData } from "@/lib/students-profile";
+import type { ProfileData } from "@/server/services/students-profile";
 
 const STATUS_TONE = { active: "green", graduated: "blue", left: "amber" } as const;
 const STATUS_LABEL = { active: "Active", graduated: "Graduated", left: "Left" } as const;

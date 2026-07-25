@@ -6,7 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { requireCtx, ServiceError } from "@/server/context";
 import { appraisalsService, type SectionInput } from "@/server/services/appraisals";
-import { getTeacherAppraisal } from "@/lib/appraisals";
+import { getTeacherAppraisal } from "@/server/services/appraisals-read";
 import type { Appraisal, RaterId } from "@/lib/appraisals/config";
 
 type Res = { ok?: true; error?: string };

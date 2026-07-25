@@ -1,5 +1,5 @@
 import { requireAccess } from "@/server/context";
-import { getRetentionData } from "@/lib/insights";
+import { getRetentionData } from "@/server/services/insights";
 import { RetentionPage } from "@/components/insights/RetentionPage";
 
 export default async function Page() {

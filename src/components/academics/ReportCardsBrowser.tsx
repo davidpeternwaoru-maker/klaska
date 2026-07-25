@@ -9,7 +9,7 @@ import { Card, Pill, Button } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { RealReportCard, type CardSchool } from "./RealReportCard";
-import type { StudentCardData, Band } from "@/lib/reportcard";
+import type { StudentCardData, Band } from "@/server/services/reportcard";
 import { saveClassRemarkAction } from "@/lib/actions/reportcard";
 
 function ClassRemarkEditor({ card }: { card: StudentCardData }) {

@@ -11,7 +11,9 @@ import { Card, Pill, SectionTitle } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { generateInvoices, recordPayment, type FinanceState } from "@/lib/actions/finance";
-import { exportFeesExcel, type ExportMeta } from "@/lib/export/real-exports";
+import { type ExportMeta } from "@/lib/export/real-exports";
+import { exportExcel, exportPdf } from "@/lib/export/engine";
+import { feesReport } from "@/lib/export/reports";
 
 export type FeeRow = {
   id: string; // invoice id
@@ -307,8 +309,11 @@ export function FeesCollection({
         sub={`Term fee status for every student across ${classRange}.`}
         right={
           <>
-            <button onClick={() => exportFeesExcel(meta, rows.map((r) => ({ student: r.student, className: r.className, total: r.total, paid: r.paid })))} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+            <button onClick={() => exportExcel(feesReport({ school: meta.school, term: meta.termLabel, session: meta.session }, rows, classStats, kpis))} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="download" size={15} /> Export to Excel
+            </button>
+            <button onClick={() => exportPdf(feesReport({ school: meta.school, term: meta.termLabel, session: meta.session }, rows, classStats, kpis))} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+              <Icon name="reports" size={15} /> PDF
             </button>
             <button onClick={() => flash("Pay links arrive with virtual collection — coming soon.")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="bell" size={15} /> Send pay link

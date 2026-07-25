@@ -6,6 +6,7 @@ import type { ReportSpec, Sheet, Row } from "./engine";
 import type { FeeRow, ClassStat, FeeKpis } from "@/components/finance/FeesCollection";
 import type { AnalysisRow } from "@/lib/analysis-drill";
 import { computeBundle, scopeFilter, type Scope } from "@/lib/analysis-compute";
+import type { FinancialStatements } from "@/server/services/statements";
 
 type Brand = { school: string; logoUrl?: string | null; term?: string | null; session?: string | null };
 
@@ -207,6 +208,95 @@ export function analysisReport(rows: AnalysisRow[], prevAvg: Record<string, numb
     fileName: `analysis-${b.scopeTitle.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`,
     title: `Result Analysis — ${b.scopeTitle}`,
     brand: { school: meta.school, logoUrl: meta.logoUrl, term: meta.term, session: meta.session },
+    sheets,
+  };
+}
+
+// ── Financial statements (P&L, expenses, cash flow, balance summary) ─────────
+export type StatementKind = "pnl" | "expenses" | "cashflow" | "balance" | "all";
+
+const pnlSheet = (d: FinancialStatements): Sheet => ({
+  name: "Profit & Loss",
+  title: "Profit & Loss (Income Statement)",
+  columns: [{ header: "Item", width: 34 }, { header: "Amount", format: "ngn", width: 18 }],
+  rows: [
+    { role: "section", cells: ["REVENUE", null] },
+    ...d.pnl.revenue.map<Row>((r) => ({ cells: [r.label, r.amount] })),
+    { role: "subtotal", cells: ["Total revenue", d.pnl.revenueTotal] },
+    { role: "spacer", cells: [] },
+    { role: "section", cells: ["EXPENSES", null] },
+    ...d.pnl.expenses.map<Row>((e) => ({ cells: [e.label, { v: e.amount, tone: "neg" }] })),
+    { role: "subtotal", cells: ["Total expenses", { v: d.pnl.expenseTotal, tone: "neg" }] },
+    { role: "spacer", cells: [] },
+    { role: "total", cells: ["NET PROFIT", { v: d.pnl.net, tone: d.pnl.net >= 0 ? "pos" : "neg" }] },
+  ],
+  note: "For management use — computed from fees, payments and expenses recorded in Klaska.",
+});
+
+const expenseCatSheet = (d: FinancialStatements): Sheet => ({
+  name: "Expenses by category",
+  columns: [{ header: "Category", width: 26 }, { header: "Amount", format: "ngn", width: 18 }, { header: "% of total", format: "num1", width: 12 }],
+  rows: [
+    ...d.expenseByCategory.map<Row>((c) => ({ cells: [c.category, { v: c.amount, tone: "neg" }, c.pct] })),
+    { role: "total", cells: ["Total expenses", { v: d.pnl.expenseTotal, tone: "neg" }, 100] },
+  ],
+});
+
+const expenseRegisterSheet = (d: FinancialStatements): Sheet => ({
+  name: "Expense register",
+  columns: [{ header: "Date", width: 14 }, { header: "Ref", width: 10 }, { header: "Category", width: 22 }, { header: "Description", width: 36 }, { header: "Amount", format: "ngn", width: 16 }],
+  rows: [
+    ...d.expenseRows.map<Row>((e) => ({ cells: [e.date, e.ref, e.category, e.description, e.amount] })),
+    { role: "total", cells: ["", "", "", "Total", { v: d.pnl.expenseTotal, tone: "neg" }] },
+  ],
+});
+
+const cashflowSheet = (d: FinancialStatements): Sheet => ({
+  name: "Cash flow",
+  title: "Cash flow summary",
+  columns: [{ header: "Month", width: 14 }, { header: "Money in", format: "ngn", width: 16 }, { header: "Money out", format: "ngn", width: 16 }, { header: "Net", format: "ngn", width: 16 }],
+  rows: [
+    ...d.cashflow.months.map<Row>((m) => ({ cells: [m.label, { v: m.inflow, tone: "pos" }, { v: m.outflow, tone: "neg" }, { v: m.net, tone: m.net >= 0 ? "pos" : "neg" }] })),
+    { role: "total", cells: ["Total", { v: d.cashflow.totalIn, tone: "pos" }, { v: d.cashflow.totalOut, tone: "neg" }, { v: d.cashflow.net, tone: d.cashflow.net >= 0 ? "pos" : "neg" }] },
+  ],
+});
+
+const balanceSheet = (d: FinancialStatements): Sheet => ({
+  name: "Balance summary",
+  title: "Balance-sheet summary",
+  columns: [{ header: "Item", width: 40 }, { header: "Amount", format: "ngn", width: 18 }],
+  rows: [
+    { role: "section", cells: ["ASSETS", null] },
+    { cells: ["Cash position (from recorded transactions)", { v: d.balance.cash, tone: d.balance.cash >= 0 ? "pos" : "neg" }] },
+    { cells: ["Receivables — outstanding fees", { v: d.balance.receivables, tone: d.balance.receivables > 0 ? "neg" : null }] },
+    { role: "subtotal", cells: ["Total assets (indicative)", d.balance.cash + d.balance.receivables] },
+    { role: "spacer", cells: [] },
+    { role: "section", cells: ["LIABILITIES", null] },
+    { cells: ["Payables (recorded)", d.balance.payables] },
+    { role: "subtotal", cells: ["Total liabilities (recorded)", d.balance.payables] },
+  ],
+  note: "Summary — for management use, to be completed by your accountant. Derived only from transactions recorded in Klaska; these are not audited accounts.",
+});
+
+const kindTitle: Record<StatementKind, string> = {
+  pnl: "Profit & Loss Statement",
+  expenses: "Expense Breakdown Report",
+  cashflow: "Cash Flow Summary",
+  balance: "Balance-Sheet Summary",
+  all: "Financial Statements",
+};
+
+/** Financial statements report for the chosen period + statement selection. */
+export function statementsReport(d: FinancialStatements, which: StatementKind): ReportSpec {
+  const sheets: Sheet[] = [];
+  if (which === "pnl" || which === "all") sheets.push(pnlSheet(d));
+  if (which === "expenses" || which === "all") sheets.push(expenseCatSheet(d), expenseRegisterSheet(d));
+  if (which === "cashflow" || which === "all") sheets.push(cashflowSheet(d));
+  if (which === "balance" || which === "all") sheets.push(balanceSheet(d));
+  return {
+    fileName: `${which === "all" ? "financial-statements" : which}-${d.meta.period}`,
+    title: kindTitle[which],
+    brand: { school: d.meta.school, logoUrl: d.meta.logoUrl, term: d.meta.periodLabel, session: null },
     sheets,
   };
 }

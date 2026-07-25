@@ -11,7 +11,10 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { Card, Pill, SectionTitle } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { addExpense, deleteExpense, type ActionState } from "@/lib/actions/expenses";
-import { exportFinancialStatement, type ExportMeta } from "@/lib/export/real-exports";
+import { type ExportMeta } from "@/lib/export/real-exports";
+import { exportExcel, exportPdf } from "@/lib/export/engine";
+import { statementsReport, type StatementKind } from "@/lib/export/reports";
+import { financialStatementsAction } from "@/lib/actions/statements";
 
 /* ---------------- types ---------------- */
 export type MonthPoint = { label: string; revenue: number; cost: number };
@@ -69,6 +72,81 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
         </Card>
       </div>
     </div>
+  );
+}
+
+function StatementsModal({ onClose }: { onClose: () => void }) {
+  const [period, setPeriod] = useState<"month" | "term" | "session">("term");
+  const [kind, setKind] = useState<StatementKind>("all");
+  const [busy, setBusy] = useState<null | "xlsx" | "pdf">(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const periods: { v: "month" | "term" | "session"; label: string }[] = [
+    { v: "month", label: "This month" },
+    { v: "term", label: "This term" },
+    { v: "session", label: "Full session" },
+  ];
+  const kinds: { v: StatementKind; label: string }[] = [
+    { v: "all", label: "All statements" },
+    { v: "pnl", label: "Profit & Loss" },
+    { v: "expenses", label: "Expense breakdown" },
+    { v: "cashflow", label: "Cash flow" },
+    { v: "balance", label: "Balance-sheet summary" },
+  ];
+
+  async function run(fmt: "xlsx" | "pdf") {
+    setBusy(fmt);
+    setError(null);
+    const res = await financialStatementsAction(period);
+    if (!res.ok) {
+      setBusy(null);
+      setError(res.error);
+      return;
+    }
+    try {
+      const spec = statementsReport(res.data, kind);
+      if (fmt === "xlsx") await exportExcel(spec);
+      else await exportPdf(spec);
+      onClose();
+    } catch {
+      setError("Could not build the file. Please try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Modal title="Financial statements" onClose={onClose}>
+      <p className="mb-4 text-[12.5px] text-ink-4">Proper P&amp;L, expense breakdown, cash flow and a balance-sheet summary — from your recorded fees, payments and expenses.</p>
+      <label className="block text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-4">Period</label>
+      <div className="mt-2 flex gap-2">
+        {periods.map((p) => (
+          <button key={p.v} onClick={() => setPeriod(p.v)} className={`flex-1 rounded-[var(--radius-card)] border px-3 py-2 text-[13px] font-medium transition ${period === p.v ? "border-forest bg-forest text-white" : "border-border bg-card text-ink-2 hover:bg-secondary"}`}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <label className="mt-4 block text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-4">Statement</label>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {kinds.map((k) => (
+          <button key={k.v} onClick={() => setKind(k.v)} className={`rounded-[var(--radius-card)] border px-3 py-2 text-left text-[13px] font-medium transition ${kind === k.v ? "border-forest bg-forest-soft text-forest" : "border-border bg-card text-ink-2 hover:bg-secondary"}`}>
+            {k.label}
+          </button>
+        ))}
+      </div>
+      {error && <p className="mt-3 text-[12.5px] font-medium text-red">{error}</p>}
+      <div className="mt-6 flex items-center justify-between">
+        <span className="text-[11.5px] text-ink-4">Owner &amp; Bursar only · recorded transactions</span>
+        <div className="flex gap-2">
+          <button onClick={() => run("pdf")} disabled={!!busy} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary disabled:opacity-50">
+            <Icon name="reports" size={15} /> {busy === "pdf" ? "Building…" : "PDF"}
+          </button>
+          <button onClick={() => run("xlsx")} disabled={!!busy} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-50">
+            <Icon name="download" size={15} /> {busy === "xlsx" ? "Building…" : "Export Excel"}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -280,7 +358,7 @@ export function FinancialOS({
   payments: PayRow[];
   canEdit: boolean;
 }) {
-  const [modal, setModal] = useState<"none" | "expense" | "tax" | "pnl">("none");
+  const [modal, setModal] = useState<"none" | "expense" | "tax" | "pnl" | "statements">("none");
   const [filter, setFilter] = useState("all");
   const [note, setNote] = useState<string | null>(null);
   const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -312,11 +390,8 @@ export function FinancialOS({
             <button onClick={() => setModal("tax")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
               <Icon name="receipt" size={15} /> Tax summary
             </button>
-            <button
-              onClick={() => exportFinancialStatement(meta, { invoiced: hero.revenueTerm + 0, collected: hero.revenueTerm, outstanding: 0, expensesTotal: hero.costsTerm, net: hero.net }, payments.map((p) => ({ when: p.when, student: p.student, amount: p.amount, method: p.method, reference: p.reference })), expenses.map((e) => ({ when: e.date, category: e.category, description: e.description, amount: e.amount })))}
-              className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary"
-            >
-              <Icon name="download" size={15} /> Export to Excel
+            <button onClick={() => setModal("statements")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 py-2 text-[13px] font-medium text-ink-2 transition hover:bg-secondary">
+              <Icon name="reports" size={15} /> Financial statements
             </button>
             {canEdit && (
               <button onClick={() => setModal("expense")} className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
@@ -491,6 +566,7 @@ export function FinancialOS({
       {modal === "expense" && <LogExpenseModal onClose={() => setModal("none")} />}
       {modal === "tax" && <TaxSummaryModal hero={hero} slices={slices} meta={meta} onClose={() => setModal("none")} />}
       {modal === "pnl" && <PnLModal months={months} meta={meta} onClose={() => setModal("none")} />}
+      {modal === "statements" && <StatementsModal onClose={() => setModal("none")} />}
     </div>
   );
 }

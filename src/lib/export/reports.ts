@@ -7,7 +7,7 @@ import type { FeeRow, ClassStat, FeeKpis } from "@/components/finance/FeesCollec
 import type { AnalysisRow } from "@/lib/analysis-drill";
 import { computeBundle, scopeFilter, type Scope } from "@/lib/analysis-compute";
 import type { FinancialStatements } from "@/server/services/statements";
-import { COMPETENCIES, type Appraisal } from "@/lib/appraisals/config";
+import { COMPETENCIES, RATER_IDS, RATER_LABEL, type Appraisal } from "@/lib/appraisals/config";
 import { ROLE_LABEL } from "@/lib/auth/permissions";
 import type { Role } from "@/lib/auth/jwt";
 
@@ -382,15 +382,19 @@ export function taxReport(brand: Brand, revenue: number, expensesByCat: { catego
 
 // ── Staff appraisals ────────────────────────────────────────────────────────
 export function appraisalsReport(brand: Brand, board: Appraisal[]): ReportSpec {
+  const progressText = (a: Appraisal) => RATER_IDS.map((r) => `${RATER_LABEL[r]}: ${a.progress[r]}`).join(" · ");
   const roster: Sheet = {
     name: "Appraisal roster",
     columns: [
-      { header: "Staff", width: 26 },
+      { header: "Teacher", width: 26 },
       { header: "Role", width: 18 },
       { header: "Department", width: 16 },
+      { header: "Self", format: "num1", width: 9 },
+      { header: "HOD", format: "num1", width: 9 },
+      { header: "Principal", format: "num1", width: 10 },
       { header: "Overall", format: "num1", width: 10 },
       { header: "Band", width: 20 },
-      { header: "Status", width: 18 },
+      { header: "Progress", width: 34 },
     ],
     rows: [
       ...board.map<Row>((a) => ({
@@ -398,20 +402,23 @@ export function appraisalsReport(brand: Brand, board: Appraisal[]): ReportSpec {
           a.staff.name,
           ROLE_LABEL[a.staff.role as Role] ?? a.staff.role,
           a.staff.department ?? "—",
+          a.entries.self?.overall ?? null,
+          a.entries.hod?.overall ?? null,
+          a.entries.hos?.overall ?? null,
           { v: a.overall ?? null, tone: a.overall != null && a.overall >= 3.5 ? "pos" : a.overall != null && a.overall < 2.5 ? "neg" : null },
           a.band?.label ?? "—",
-          a.signed ? "Signed off" : a.status.replace(/_/g, " "),
+          progressText(a),
         ],
       })),
     ],
-    note: "360° staff appraisals — weighted overall out of 5.",
+    note: "Teacher appraisals — overall is the average of the perspectives completed, out of 5.",
   };
 
   const competency: Sheet = {
-    name: "By competency",
-    columns: [{ header: "Staff", width: 24 }, ...COMPETENCIES.map((c) => ({ header: c.label.length > 16 ? c.label.slice(0, 14) + "…" : c.label, format: "num1" as const, width: 12 })), { header: "Overall", format: "num1", width: 10 }],
+    name: "By criterion",
+    columns: [{ header: "Teacher", width: 24 }, ...COMPETENCIES.map((c) => ({ header: c.label.length > 16 ? c.label.slice(0, 14) + "…" : c.label, format: "num1" as const, width: 12 })), { header: "Overall", format: "num1", width: 10 }],
     rows: board.map<Row>((a) => ({
-      cells: [a.staff.name, ...COMPETENCIES.map((c) => a.perComp.find((p) => p.id === c.id)?.weighted ?? null), { v: a.overall ?? null, tone: "pos" }],
+      cells: [a.staff.name, ...COMPETENCIES.map((c) => a.perComp.find((p) => p.id === c.id)?.scores.hos ?? a.perComp.find((p) => p.id === c.id)?.scores.hod ?? a.perComp.find((p) => p.id === c.id)?.scores.self ?? null), { v: a.overall ?? null, tone: "pos" }],
     })),
   };
 

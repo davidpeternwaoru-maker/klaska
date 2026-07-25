@@ -1,17 +1,20 @@
 "use server";
 
-// Appraisals Server Actions — delegate to `appraisalsService`, revalidate.
+// Appraisals Server Actions — delegate to the service (writes) and the read layer
+// (single-teacher fetch), each of which enforces the access rules server-side.
 
 import { revalidatePath } from "next/cache";
 import { requireCtx, ServiceError } from "@/server/context";
-import { appraisalsService } from "@/server/services/appraisals";
-import type { RaterId } from "@/lib/appraisals/config";
+import { appraisalsService, type SectionInput } from "@/server/services/appraisals";
+import { getTeacherAppraisal } from "@/lib/appraisals";
+import type { Appraisal, RaterId } from "@/lib/appraisals/config";
 
 type Res = { ok?: true; error?: string };
 
-async function run(fn: () => Promise<void>): Promise<Res> {
+export async function saveRatingAction(staffId: string, rater: RaterId, sections: SectionInput[], overallComment: string, submit: boolean): Promise<Res> {
+  const ctx = await requireCtx();
   try {
-    await fn();
+    await appraisalsService.saveRating(ctx, staffId, rater, sections, overallComment, submit);
     revalidatePath("/people/appraisals");
     return { ok: true };
   } catch (e) {
@@ -20,17 +23,15 @@ async function run(fn: () => Promise<void>): Promise<Res> {
   }
 }
 
-export async function saveRatingAction(staffId: string, rater: RaterId, ratings: Record<string, number>, comment: string): Promise<Res> {
+/** Fetch one teacher's full appraisal — visibility enforced in the read layer, so
+ *  a Teacher calling this for anyone else gets `{ error }`, not their record. */
+export async function getAppraisalAction(staffId: string): Promise<{ ok: true; appraisal: Appraisal } | { ok: false; error: string }> {
   const ctx = await requireCtx();
-  return run(() => appraisalsService.saveRating(ctx, staffId, rater, ratings, comment));
-}
-
-export async function signOffAction(staffId: string, byName: string): Promise<Res> {
-  const ctx = await requireCtx();
-  return run(() => appraisalsService.signOff(ctx, staffId, byName));
-}
-
-export async function reopenAction(staffId: string): Promise<Res> {
-  const ctx = await requireCtx();
-  return run(() => appraisalsService.reopen(ctx, staffId));
+  try {
+    const { appraisal } = await getTeacherAppraisal(ctx, staffId);
+    return { ok: true, appraisal };
+  } catch (e) {
+    if (e instanceof ServiceError) return { ok: false, error: e.message };
+    throw e;
+  }
 }

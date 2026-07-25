@@ -1,12 +1,21 @@
 import "server-only";
 
-// Appraisals (writes) — record rater scores, principal sign-off, and reopen.
-// One Appraisal row per (subjectStaffId, raterRole, session, term). Reads live in
-// @/lib/appraisals (the board/own-appraisal builders composed by the page).
+// Appraisals (writes) — record ONE reviewer perspective's scores + comments for a
+// teacher, in the current session/term. Exactly one Appraisal row per
+// (subjectStaffId, raterRole, session, term). Every rule below is enforced here,
+// on the server, regardless of what the UI shows:
+//
+//   • A Teacher may fill ONLY their own self-appraisal.
+//   • A HOD may fill the HOD portion ONLY for teachers in their own department,
+//     and may fill their own self-appraisal.
+//   • The HOS/Principal may fill the Principal portion for anyone.
+//   • The Owner is read-only (full visibility, no input).
+//   • Submitting locks that reviewer's portion; a DRAFT can still be edited.
 
 import { prisma } from "@/lib/db";
-import { canView, canManage } from "@/lib/auth/permissions";
-import type { RaterId } from "@/lib/appraisals/config";
+import { canView } from "@/lib/auth/permissions";
+import { editableRaterFor } from "@/lib/appraisals";
+import { COMP_IDS, overallOf, type RaterId } from "@/lib/appraisals/config";
 import { type Ctx, ServiceError } from "@/server/context";
 
 async function calendar(schoolId: string) {
@@ -14,45 +23,53 @@ async function calendar(schoolId: string) {
   return { session: s?.session ?? null, term: s?.term ?? null };
 }
 
+export type SectionInput = { competency: string; score: number; comment?: string };
+
 export const appraisalsService = {
-  /** Record (or update) one rater group's competency scores + comment for a staff member. */
-  async saveRating(ctx: Ctx, staffId: string, rater: RaterId, ratings: Record<string, number>, comment: string): Promise<void> {
+  /** Record (or update) one reviewer's portion. `submit` locks it; otherwise it
+   *  stays an editable DRAFT. Returns nothing; throws ServiceError on any denial. */
+  async saveRating(ctx: Ctx, staffId: string, rater: RaterId, sections: SectionInput[], overallComment: string, submit: boolean): Promise<void> {
     if (!canView(ctx.role, "appraisals")) throw new ServiceError("You don't have access to appraisals.");
-    // Teachers may only submit their OWN self-appraisal.
-    if (ctx.role === "TEACHER" && (rater !== "self" || staffId !== ctx.staffId)) throw new ServiceError("Teachers can only submit their own self-appraisal.");
+
+    const [viewer, subject] = await Promise.all([
+      prisma.staff.findUnique({ where: { id: ctx.staffId }, select: { departmentId: true } }),
+      prisma.staff.findFirst({ where: { id: staffId, schoolId: ctx.schoolId }, select: { id: true, role: true, departmentId: true } }),
+    ]);
+    if (!subject) throw new ServiceError("That staff member was not found.", "NOT_FOUND");
+
+    // The single source of truth for "who may fill what" — shared with the reads.
+    const allowed = editableRaterFor(
+      { role: ctx.role, staffId: ctx.staffId, departmentId: viewer?.departmentId ?? null },
+      { id: subject.id, role: subject.role, departmentId: subject.departmentId },
+    );
+    if (!allowed) throw new ServiceError("You are not allowed to appraise this teacher.");
+    if (allowed !== rater) throw new ServiceError(`Your role may only record the ${allowed.toUpperCase()} appraisal here.`);
 
     const { session, term } = await calendar(ctx.schoolId);
-    const vals = Object.values(ratings);
-    // Denormalised summary only (precise score is recomputed from the score rows on read).
-    const overall = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-    const scoreData = Object.entries(ratings).map(([competency, score]) => ({ competency, score: Math.max(1, Math.min(5, Math.round(score))) }));
+
+    // Sanitise: known competencies only, scores clamped to 1–5.
+    const clean = sections
+      .filter((s) => (COMP_IDS as string[]).includes(s.competency))
+      .map((s) => ({ competency: s.competency, score: Math.max(1, Math.min(5, Math.round(s.score))), comment: (s.comment ?? "").trim() || null }));
+    if (submit && clean.length < COMP_IDS.length) throw new ServiceError("Please rate every criterion before submitting.", "INVALID");
+
+    const overall = overallOf(Object.fromEntries(clean.map((c) => [c.competency, { score: c.score, comment: c.comment ?? "" }])));
+    const status = submit ? "SUBMITTED" : "DRAFT";
 
     const existing = await prisma.appraisal.findFirst({ where: { schoolId: ctx.schoolId, subjectStaffId: staffId, raterRole: rater, session, term } });
     if (existing) {
+      if (existing.status === "SUBMITTED") throw new ServiceError("This portion has already been submitted and is locked.");
       await prisma.$transaction([
         prisma.appraisalScore.deleteMany({ where: { appraisalId: existing.id } }),
-        prisma.appraisal.update({ where: { id: existing.id }, data: { comment, overall, raterStaffId: ctx.staffId, status: "SUBMITTED", scores: { create: scoreData } } }),
+        prisma.appraisal.update({
+          where: { id: existing.id },
+          data: { comment: overallComment.trim() || null, overall, raterStaffId: ctx.staffId, status, scores: { create: clean } },
+        }),
       ]);
     } else {
       await prisma.appraisal.create({
-        data: { schoolId: ctx.schoolId, subjectStaffId: staffId, raterStaffId: ctx.staffId, raterRole: rater, session, term, comment, overall, status: "SUBMITTED", scores: { create: scoreData } },
+        data: { schoolId: ctx.schoolId, subjectStaffId: staffId, raterStaffId: ctx.staffId, raterRole: rater, session, term, comment: overallComment.trim() || null, overall, status, scores: { create: clean } },
       });
     }
-  },
-
-  /** Principal formally signs and confirms the appraisal (locks it). */
-  async signOff(ctx: Ctx, staffId: string, byName: string): Promise<void> {
-    if (!canManage(ctx.role, "appraisals")) throw new ServiceError("Only the owner or principal signs off appraisals.");
-    const { session, term } = await calendar(ctx.schoolId);
-    const existing = await prisma.appraisal.findFirst({ where: { schoolId: ctx.schoolId, subjectStaffId: staffId, raterRole: "signoff", session, term } });
-    if (existing) await prisma.appraisal.update({ where: { id: existing.id }, data: { comment: byName, status: "SIGNED", raterStaffId: ctx.staffId } });
-    else await prisma.appraisal.create({ data: { schoolId: ctx.schoolId, subjectStaffId: staffId, raterStaffId: ctx.staffId, raterRole: "signoff", session, term, comment: byName, status: "SIGNED" } });
-  },
-
-  /** Reopen a signed-off appraisal (removes the sign-off). */
-  async reopen(ctx: Ctx, staffId: string): Promise<void> {
-    if (!canManage(ctx.role, "appraisals")) throw new ServiceError("Only the owner or principal reopens appraisals.");
-    const { session, term } = await calendar(ctx.schoolId);
-    await prisma.appraisal.deleteMany({ where: { schoolId: ctx.schoolId, subjectStaffId: staffId, raterRole: "signoff", session, term } });
   },
 };

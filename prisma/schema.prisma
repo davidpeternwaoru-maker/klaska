@@ -154,6 +154,10 @@ model Staff {
   passwordHash String // never store raw passwords — only a bcrypt hash
   role         Role     @default(TEACHER)
   title        String? // e.g. "Mathematics Teacher", "Head of Science"
+  // The department this staff member belongs to. A HOD heads their department;
+  // teachers in that same department are the ones the HOD may appraise.
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  departmentId String?
   phone        String?
   salaryMonthly Int? // gross monthly salary (naira) — feeds payroll
   createdAt    DateTime @default(now())
@@ -516,6 +520,7 @@ model Department {
   classes  Class[]
   students Student[]
   subjects Subject[]
+  staff    Staff[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -762,6 +767,7 @@ model AppraisalScore {
   appraisalId String
   competency  String // e.g. "Teaching delivery"
   score       Int
+  comment     String?   @db.Text // optional per-section note from the reviewer
 
   @@unique([appraisalId, competency])
 }

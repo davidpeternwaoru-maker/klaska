@@ -14,7 +14,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import type { DrilldownData } from "@/lib/analysis-drill";
 import { computeBundle, type Dim, type Scope } from "@/lib/analysis-compute";
-import { exportAnalysisWorkbook, exportAnalysisPDF } from "@/lib/export/analysis-export";
+import { exportExcel, exportPdf } from "@/lib/export/engine";
+import { analysisReport } from "@/lib/export/reports";
 
 const hueOf = (s: string) => {
   let h = 0;
@@ -38,9 +39,16 @@ export function AnalysisDrilldown({ data }: { data: DrilldownData }) {
   async function run(kind: "xlsx" | "pdf") {
     setBusy(kind);
     try {
-      const meta = { school: data.meta.school, logoUrl: data.meta.logoUrl, session: data.meta.session, termLabel: data.meta.termLabel, prevLabel: data.meta.prevLabel, sectionLabels: data.meta.sectionLabels };
-      if (kind === "xlsx") await exportAnalysisWorkbook(data.rows, data.prevAvg, scope, meta);
-      else await exportAnalysisPDF(data.rows, data.prevAvg, scope, meta);
+      const spec = analysisReport(data.rows, data.prevAvg, scope, {
+        school: data.meta.school,
+        logoUrl: data.meta.logoUrl,
+        term: data.meta.termLabel,
+        session: data.meta.session,
+        prevLabel: data.meta.prevLabel,
+        sectionLabels: data.meta.sectionLabels,
+      });
+      if (kind === "xlsx") await exportExcel(spec);
+      else await exportPdf(spec);
     } finally {
       setBusy(null);
     }

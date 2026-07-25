@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAccess } from "@/server/context";
 import { reportCardsService } from "@/server/services/academics";
+import { canManageClasses } from "@/lib/auth/permissions";
 import { Card, SectionTitle } from "@/components/ui/primitives";
 import { ReportCardsBrowser } from "@/components/academics/ReportCardsBrowser";
 import { detectTerm, TERM_LABEL, fmtShortDate, type TermKey } from "@/lib/terms";
@@ -26,6 +27,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
 
   if (!data) redirect("/academics/report-cards");
   const { school, klass, bands, cards, numberInClass } = data;
+
+  // The class-teacher remark is written by the FORM teacher of this class, or by
+  // school leadership. Enforced server-side too; this only decides the editor UI.
+  const canEditRemark = canManageClasses(user.role) || (user.role === "TEACHER" && klass.teacherId === user.staffId);
 
   const fallback = detectTerm();
   const termKey = (school.term as TermKey) || fallback.term;
@@ -59,6 +64,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
         cards={cards}
         numberInClass={numberInClass}
         bands={bands}
+        canEditRemark={canEditRemark}
       />
     </div>
   );

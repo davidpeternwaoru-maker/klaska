@@ -43,7 +43,7 @@ export async function deleteSubject(formData: FormData): Promise<void> {
 export async function saveResults(
   subjectId: string,
   classId: string,
-  entries: { studentId: string; ca1?: unknown; ca2?: unknown; exam?: unknown }[],
+  entries: { studentId: string; ca1?: unknown; ca2?: unknown; exam?: unknown; subjectRemark?: unknown }[],
 ): Promise<SaveResultsResult> {
   const ctx = await requireCtx();
   try {

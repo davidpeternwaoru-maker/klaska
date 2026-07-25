@@ -79,8 +79,13 @@ export async function getDrilldownData(user: SessionUser): Promise<DrilldownData
   let where: import("@prisma/client").Prisma.ResultWhereInput = { schoolId: user.schoolId };
   let scopeLabel = "Whole school";
   if (user.role === "TEACHER") {
-    const led = await prisma.class.findMany({ where: { schoolId: user.schoolId, teacherId: user.staffId }, select: { id: true } });
-    where = { schoolId: user.schoolId, classId: { in: led.map((c) => c.id) } };
+    // Classes the teacher OWNS (form) or TEACHES a subject in.
+    const [owned, assigned] = await Promise.all([
+      prisma.class.findMany({ where: { schoolId: user.schoolId, teacherId: user.staffId }, select: { id: true } }),
+      prisma.teachingAssignment.findMany({ where: { schoolId: user.schoolId, teacherId: user.staffId }, select: { classId: true } }),
+    ]);
+    const classIds = Array.from(new Set([...owned.map((c) => c.id), ...assigned.map((a) => a.classId)]));
+    where = { schoolId: user.schoolId, classId: { in: classIds } };
     scopeLabel = "Your classes";
   } else if (user.role === "HOD") {
     const me = await prisma.staff.findUnique({ where: { id: user.staffId }, select: { title: true } });

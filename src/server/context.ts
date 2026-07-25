@@ -7,6 +7,7 @@ import "server-only";
 // those rules. This module is the one door into the data layer.
 
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 import { requireUser, getCurrentUser } from "@/lib/auth/session";
 import { canView, canManage, scopeOf, type Area } from "@/lib/auth/permissions";
 import type { SessionUser } from "@/lib/auth/jwt";
@@ -59,11 +60,48 @@ export function tenant(ctx: Ctx): { schoolId: string } {
   return { schoolId: ctx.schoolId };
 }
 
-/** Teacher scoping: teachers act on their OWN classes only (per the matrix).
- *  Returns a Prisma `where` fragment for class-linked records. */
+/** Teacher scoping (legacy, FORM-teacher only): teachers act on classes they own.
+ *  Prefer `teacherClassWhere` for surfaces where a teacher's TAUGHT classes also
+ *  count (attendance, students, results). Kept for callers that specifically mean
+ *  "the class this teacher owns". */
 export function classScopeWhere(ctx: Ctx): { schoolId: string; teacherId?: string } {
   if (ctx.role === "TEACHER") return { schoolId: ctx.schoolId, teacherId: ctx.staffId };
   return { schoolId: ctx.schoolId };
+}
+
+/** The class IDs a teacher may reach: the class they OWN (form teacher) UNION the
+ *  classes they TEACH a subject in (assignments). Non-teachers get null (= no
+ *  class-id restriction — the schoolId tenant filter still applies). */
+export async function teacherClassIds(ctx: Ctx): Promise<string[] | null> {
+  if (ctx.role !== "TEACHER") return null;
+  const [owned, assigned] = await Promise.all([
+    prisma.class.findMany({ where: { schoolId: ctx.schoolId, teacherId: ctx.staffId }, select: { id: true } }),
+    prisma.teachingAssignment.findMany({ where: { schoolId: ctx.schoolId, teacherId: ctx.staffId }, select: { classId: true } }),
+  ]);
+  return Array.from(new Set([...owned.map((c) => c.id), ...assigned.map((a) => a.classId)]));
+}
+
+/** A Prisma `where` on Class (by id) scoped to a teacher's owned ∪ taught classes.
+ *  For non-teachers it's just the tenant filter. Teachers with no classes get an
+ *  impossible filter (fail-closed: they see nothing). */
+export async function teacherClassWhere(ctx: Ctx): Promise<{ schoolId: string; id?: { in: string[] } }> {
+  const ids = await teacherClassIds(ctx);
+  if (ids === null) return { schoolId: ctx.schoolId };
+  return { schoolId: ctx.schoolId, id: { in: ids } };
+}
+
+/** True if the teacher may act in `classId` (owns it OR teaches a subject in it).
+ *  Non-teachers (with area access) always pass. */
+export async function teacherCanAccessClass(ctx: Ctx, classId: string): Promise<boolean> {
+  if (ctx.role !== "TEACHER") return true;
+  const ids = await teacherClassIds(ctx);
+  return !!ids && ids.includes(classId);
+}
+
+/** True if the teacher is assigned to teach `subjectId` in `classId`. */
+export async function teacherTeachesSubjectInClass(ctx: Ctx, subjectId: string, classId: string): Promise<boolean> {
+  const a = await prisma.teachingAssignment.findFirst({ where: { schoolId: ctx.schoolId, teacherId: ctx.staffId, subjectId, classId }, select: { id: true } });
+  return !!a;
 }
 
 export { scopeOf };

@@ -50,6 +50,7 @@ export function RealReportCard({
   numberInClass,
   bands,
   onClose,
+  remarkEditor,
 }: {
   school: CardSchool;
   klassLabel: string;
@@ -57,6 +58,7 @@ export function RealReportCard({
   numberInClass: number;
   bands: Band[];
   onClose: () => void;
+  remarkEditor?: React.ReactNode;
 }) {
   const hue = (() => {
     let h = 0;
@@ -75,6 +77,8 @@ export function RealReportCard({
             Close
           </Button>
         </div>
+
+        {remarkEditor}
 
         <div className="k-print rounded-[var(--radius-card)] border border-ink-2 bg-white p-5" style={{ color: "#1a1a18" }}>
           {/* header — the school's own branding */}
@@ -166,7 +170,11 @@ export function RealReportCard({
               <div className="mb-1 text-[9px] font-bold uppercase text-ink-4">Remarks</div>
               <div className="mb-2">
                 <div className="text-[9px] font-semibold text-ink-4">Class teacher</div>
-                <div className="h-8 border-b border-dashed border-line-2" />
+                {card.classTeacherRemark ? (
+                  <div className="min-h-8 whitespace-pre-wrap text-[10px] leading-snug text-ink-2">{card.classTeacherRemark}</div>
+                ) : (
+                  <div className="h-8 border-b border-dashed border-line-2" />
+                )}
               </div>
               <div>
                 <div className="text-[9px] font-semibold text-ink-4">Principal</div>

@@ -16,7 +16,7 @@ export default async function Home() {
 
   if (user.role === "TEACHER") {
     const d = await overviewService.teacher(user);
-    return <TeacherOverview greet={d.greet} schoolName={d.schoolName} classes={d.classes} presentToday={d.presentToday} myStudents={d.myStudents} />;
+    return <TeacherOverview greet={d.greet} schoolName={d.schoolName} ownedClass={d.ownedClass} teaching={d.teaching} presentToday={d.presentToday} myStudents={d.myStudents} />;
   }
 
   const d = await overviewService.general(user);

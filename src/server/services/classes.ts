@@ -5,7 +5,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { canManageClasses } from "@/lib/auth/permissions";
-import { type Ctx, ServiceError, classScopeWhere } from "@/server/context";
+import { type Ctx, ServiceError, teacherClassWhere } from "@/server/context";
 
 export type ClassRow = { id: string; name: string; arm: string | null; teacherName: string | null; studentCount: number };
 export type TeacherOption = { id: string; name: string };
@@ -20,7 +20,7 @@ export const classesService = {
   /** Classes visible to the ctx (teachers → their own), with counts + teacher. */
   async list(ctx: Ctx): Promise<ClassRow[]> {
     const rows = await prisma.class.findMany({
-      where: classScopeWhere(ctx),
+      where: await teacherClassWhere(ctx),
       include: { teacher: true, _count: { select: { students: true } } },
       orderBy: [{ name: "asc" }, { arm: "asc" }],
     });

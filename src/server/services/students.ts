@@ -7,7 +7,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { canManageStudents } from "@/lib/auth/permissions";
-import { type Ctx, ServiceError, classScopeWhere } from "@/server/context";
+import { type Ctx, ServiceError, teacherClassWhere, teacherClassIds } from "@/server/context";
 
 export type StudentInput = {
   firstName: string;
@@ -95,8 +95,10 @@ async function resolveGuardian(schoolId: string, name: string | null, phone: str
 export const studentsService = {
   /** All students visible to the ctx (teachers → their own classes only). */
   async list(ctx: Ctx): Promise<StudentRow[]> {
+    // Teachers see students in the classes they OWN or TEACH; leadership sees all.
+    const ids = await teacherClassIds(ctx);
     const rows = await prisma.student.findMany({
-      where: ctx.role === "TEACHER" ? { schoolId: ctx.schoolId, class: { teacherId: ctx.staffId } } : { schoolId: ctx.schoolId },
+      where: ids === null ? { schoolId: ctx.schoolId } : { schoolId: ctx.schoolId, classId: { in: ids } },
       include: { class: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     });
@@ -142,7 +144,7 @@ export const studentsService = {
 
   /** Classes selectable for this ctx (teachers → their own). */
   async classes(ctx: Ctx): Promise<{ id: string; label: string }[]> {
-    const rows = await prisma.class.findMany({ where: classScopeWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] });
+    const rows = await prisma.class.findMany({ where: await teacherClassWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] });
     return rows.map((c) => ({ id: c.id, label: classLabel(c) }));
   },
 

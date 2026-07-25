@@ -31,6 +31,7 @@ export type StudentCardData = {
   obtainable: number;
   present: number;
   daysRecorded: number;
+  classTeacherRemark: string | null;
 };
 
 export type Band = { label: string; minScore: number; maxScore: number; remark: string };
@@ -77,6 +78,12 @@ export async function buildClassCards(user: SessionUser, classId: string) {
       _count: { _all: true },
     }),
   ]);
+
+  // The form teacher's overall remark per student, for the current term.
+  const remarkRows = school.session && school.term
+    ? await prisma.reportRemark.findMany({ where: { schoolId: user.schoolId, session: school.session, term: school.term, student: { classId } }, select: { studentId: true, classTeacherRemark: true } })
+    : [];
+  const classRemarkByStudent = new Map(remarkRows.map((r) => [r.studentId, r.classTeacherRemark]));
 
   const category = categoryForClassName(klass.name);
   const bands = bandsAll.filter((b) => b.category === category).map((b) => ({ label: b.label, minScore: b.minScore, maxScore: b.maxScore, remark: b.remark }));
@@ -127,7 +134,8 @@ export async function buildClassCards(user: SessionUser, classId: string) {
       grade: r.grade,
       classAvg: classAvg.get(r.subjectId) ?? null,
       pos: posInSubject.get(r.subjectId)?.get(s.id) ?? null,
-      remark: remarkFor(bands, r.total),
+      // The subject teacher's written remark takes precedence over the auto band remark.
+      remark: r.subjectRemark?.trim() || remarkFor(bands, r.total),
     }));
     const scored = rows.filter((r) => r.total != null);
     const obtained = scored.reduce((t, r) => t + (r.total ?? 0), 0);
@@ -145,6 +153,7 @@ export async function buildClassCards(user: SessionUser, classId: string) {
       obtainable: scored.length * 100,
       present: a.present,
       daysRecorded: a.total,
+      classTeacherRemark: classRemarkByStudent.get(s.id) ?? null,
     };
   });
 

@@ -9,9 +9,9 @@ import { Card, Pill } from "@/components/ui/primitives";
 import { saveResults } from "@/lib/actions/results";
 import { gradeFor, gradeTone, CA1_MAX, CA2_MAX, EXAM_MAX } from "@/lib/results";
 
-export type ExistingResult = { ca1: number | null; ca2: number | null; exam: number | null; total: number | null; grade: string | null };
+export type ExistingResult = { ca1: number | null; ca2: number | null; exam: number | null; total: number | null; grade: string | null; subjectRemark: string | null };
 type Student = { id: string; name: string };
-type Cells = { ca1: string; ca2: string; exam: string };
+type Cells = { ca1: string; ca2: string; exam: string; remark: string };
 
 const toStr = (n: number | null) => (n == null ? "" : String(n));
 
@@ -40,7 +40,7 @@ export function ResultsGrid({
     Object.fromEntries(
       students.map((s) => {
         const e = existing[s.id];
-        return [s.id, { ca1: toStr(e?.ca1 ?? null), ca2: toStr(e?.ca2 ?? null), exam: toStr(e?.exam ?? null) }];
+        return [s.id, { ca1: toStr(e?.ca1 ?? null), ca2: toStr(e?.ca2 ?? null), exam: toStr(e?.exam ?? null), remark: e?.subjectRemark ?? "" }];
       }),
     ),
   );
@@ -61,7 +61,7 @@ export function ResultsGrid({
       const res = await saveResults(
         subjectId,
         classId,
-        students.map((s) => ({ studentId: s.id, ca1: cells[s.id].ca1, ca2: cells[s.id].ca2, exam: cells[s.id].exam })),
+        students.map((s) => ({ studentId: s.id, ca1: cells[s.id].ca1, ca2: cells[s.id].ca2, exam: cells[s.id].exam, subjectRemark: cells[s.id].remark })),
       );
       if (res.ok) setMsg(`Saved ${res.saved} results.`);
       else setError(res.error ?? "Could not save.");
@@ -89,6 +89,7 @@ export function ResultsGrid({
               <th className="px-2 py-2 text-center font-medium">Exam /60</th>
               <th className="px-2 py-2 text-center font-medium">Total</th>
               <th className="px-3 py-2 text-center font-medium">Grade</th>
+              <th className="px-3 py-2 text-left font-medium">Subject remark</th>
             </tr>
           </thead>
           <tbody>
@@ -103,6 +104,7 @@ export function ResultsGrid({
                   <td className="px-2 py-1.5 text-center"><input inputMode="numeric" disabled={readOnly} value={c.exam} onChange={(e) => set(s.id, "exam", e.target.value)} className={inp} /></td>
                   <td className="px-2 py-1.5 text-center font-semibold text-ink">{total ?? "—"}</td>
                   <td className="px-3 py-1.5 text-center">{grade ? <Pill tone={gradeTone(grade)}>{grade}</Pill> : <span className="text-ink-4">—</span>}</td>
+                  <td className="px-3 py-1.5"><input disabled={readOnly} value={c.remark} onChange={(e) => set(s.id, "remark", e.target.value)} placeholder="optional…" className="h-8 w-full min-w-[160px] rounded-[7px] border border-border bg-secondary px-2 text-[12.5px] text-ink outline-none focus:border-forest-line focus:bg-card" /></td>
                 </tr>
               );
             })}

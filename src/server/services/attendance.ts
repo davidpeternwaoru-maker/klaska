@@ -7,7 +7,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { canMarkAttendance } from "@/lib/auth/permissions";
 import { ATT_STATUSES } from "@/lib/attendance";
-import { type Ctx, ServiceError, classScopeWhere } from "@/server/context";
+import { type Ctx, ServiceError, teacherClassWhere, teacherCanAccessClass } from "@/server/context";
 
 const classLabel = (c: { name: string; arm: string | null }) => (c.arm ? `${c.name} ${c.arm}` : c.name);
 
@@ -23,7 +23,7 @@ export type MarkerData = {
 export const attendanceService = {
   /** Per-class attendance summary for a report (role-scoped: teachers → own classes). */
   async report(ctx: Ctx): Promise<{ school: string; rows: { class: string; present: number; late: number; absent: number; excused: number; total: number; rate: number }[] }> {
-    const classes = await prisma.class.findMany({ where: classScopeWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] });
+    const classes = await prisma.class.findMany({ where: await teacherClassWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] });
     const classIds = classes.map((c) => c.id);
     const [school, grouped] = await Promise.all([
       prisma.school.findUnique({ where: { id: ctx.schoolId }, select: { name: true } }),
@@ -54,7 +54,7 @@ export const attendanceService = {
   async marker(ctx: Ctx, params: { classId?: string; date?: string }): Promise<MarkerData> {
     const today = new Date().toISOString().slice(0, 10);
     const date = params.date || today;
-    const classes = await prisma.class.findMany({ where: classScopeWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] });
+    const classes = await prisma.class.findMany({ where: await teacherClassWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] });
     const classId = params.classId || classes[0]?.id || "";
     const classOptions = classes.map((c) => ({ value: c.id, label: classLabel(c) }));
 
@@ -76,7 +76,9 @@ export const attendanceService = {
 
     const klass = await prisma.class.findFirst({ where: { id: classId, schoolId: ctx.schoolId } });
     if (!klass) throw new ServiceError("Class not found.", "NOT_FOUND");
-    if (ctx.role === "TEACHER" && klass.teacherId !== ctx.staffId) throw new ServiceError("You can only mark attendance for your own class.");
+    // Form teacher marks their own class's register; a subject teacher may mark
+    // the register for any class they teach a subject in.
+    if (ctx.role === "TEACHER" && !(await teacherCanAccessClass(ctx, classId))) throw new ServiceError("You can only mark attendance for your own class or a class you teach.");
 
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) throw new ServiceError("That date isn't valid.", "INVALID");

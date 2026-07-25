@@ -32,6 +32,8 @@ export type TeacherOverviewData = {
   greet: string;
   schoolName: string;
   classes: { id: string; label: string; students: number }[];
+  ownedClass: { id: string; label: string; students: number } | null;
+  teaching: { subject: string; classes: string[] }[];
   presentToday: number;
   myStudents: number;
 };
@@ -71,20 +73,45 @@ export const overviewService = {
 
   async teacher(ctx: Ctx): Promise<TeacherOverviewData> {
     const school = await schoolMeta(ctx);
-    const classes = await prisma.class.findMany({
-      where: { schoolId: ctx.schoolId, teacherId: ctx.staffId },
-      include: { _count: { select: { students: true } } },
-      orderBy: [{ name: "asc" }, { arm: "asc" }],
-    });
-    const classIds = classes.map((c) => c.id);
-    const [myStudents, presentToday] = await Promise.all([
-      prisma.student.count({ where: { schoolId: ctx.schoolId, classId: { in: classIds } } }),
-      prisma.attendance.count({ where: { schoolId: ctx.schoolId, classId: { in: classIds }, date: startOfToday(), status: { in: ["PRESENT", "LATE"] } } }),
+    // The two independent relationships: the class they OWN (form teacher) and the
+    // (subject × class) pairs they TEACH.
+    const [owned, assigns] = await Promise.all([
+      prisma.class.findFirst({
+        where: { schoolId: ctx.schoolId, teacherId: ctx.staffId },
+        include: { _count: { select: { students: true } } },
+        orderBy: [{ name: "asc" }, { arm: "asc" }],
+      }),
+      prisma.teachingAssignment.findMany({
+        where: { schoolId: ctx.schoolId, teacherId: ctx.staffId },
+        include: { subject: { select: { name: true } }, class: { select: { name: true, arm: true } } },
+        orderBy: { createdAt: "asc" },
+      }),
     ]);
+
+    // Group assignments by subject → the classes they teach it in.
+    const bySubject = new Map<string, string[]>();
+    for (const a of assigns) {
+      const label = classLabel(a.class);
+      const list = bySubject.get(a.subject.name) ?? [];
+      if (!list.includes(label)) list.push(label);
+      bySubject.set(a.subject.name, list);
+    }
+    const teaching = [...bySubject.entries()].map(([subject, classes]) => ({ subject, classes }));
+
+    // "My students / present today" spans every class they touch (owned ∪ taught).
+    const classIds = Array.from(new Set([...(owned ? [owned.id] : []), ...assigns.map((a) => a.classId)]));
+    const [myStudents, presentToday] = await Promise.all([
+      classIds.length ? prisma.student.count({ where: { schoolId: ctx.schoolId, classId: { in: classIds } } }) : Promise.resolve(0),
+      classIds.length ? prisma.attendance.count({ where: { schoolId: ctx.schoolId, classId: { in: classIds }, date: startOfToday(), status: { in: ["PRESENT", "LATE"] } } }) : Promise.resolve(0),
+    ]);
+
+    const ownedClass = owned ? { id: owned.id, label: classLabel(owned), students: owned._count.students } : null;
     return {
       greet: greetOf(ctx.name),
       schoolName: school?.name || "Your school",
-      classes: classes.map((c) => ({ id: c.id, label: classLabel(c), students: c._count.students })),
+      classes: ownedClass ? [ownedClass] : [],
+      ownedClass,
+      teaching,
       presentToday,
       myStudents,
     };

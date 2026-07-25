@@ -107,6 +107,8 @@ model School {
   appraisals       Appraisal[]
   notificationLogs NotificationLog[]
   transcripts      Transcript[]
+  teachingAssignments TeachingAssignment[]
+  reportRemarks    ReportRemark[]
 }
 
 // One PERSON, many children (the guardian-student decoupling). The import
@@ -163,8 +165,11 @@ model Staff {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // A teacher can be the form teacher of one or more classes.
+  // Form-teacher ownership: a teacher owns AT MOST one class/arm (enforced in
+  // the service). Separately, teachingAssignments lists the (subject × class)
+  // pairs they teach — the two relationships are independent.
   classesLed Class[] @relation("ClassTeacher")
+  teachingAssignments TeachingAssignment[] @relation("TeacherAssignments")
   payslips           Payslip[]
   appraisalsReceived Appraisal[] @relation("AppraisalSubject")
   appraisalsGiven    Appraisal[] @relation("AppraisalRater")
@@ -194,6 +199,7 @@ model Class {
   attendance  Attendance[]
   classFees   ClassFee[]
   enrollments Enrollment[]
+  teachingAssignments TeachingAssignment[]
 
   // No two classes in the same school can share the same name + arm.
   @@unique([schoolId, name, arm])
@@ -236,6 +242,7 @@ model Student {
   events      StudentEvent[]
   scores      Score[]
   transcripts Transcript[]
+  reportRemarks ReportRemark[]
 
   // Admission numbers are unique within a school (not globally).
   @@unique([schoolId, admissionNo])
@@ -282,6 +289,7 @@ model Subject {
   scores    Score[]
   topics    CurriculumTopic[]
   questions Question[]
+  teachingAssignments TeachingAssignment[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -304,6 +312,7 @@ model Result {
   exam       Int?
   total      Int?
   grade      String?
+  subjectRemark String? @db.Text // the SUBJECT teacher's written remark (auto band-remark is the fallback)
   session    String? // calendar snapshot — scores belong to a term (§6)
   term       String?
   recordedBy String?
@@ -758,6 +767,46 @@ model Appraisal {
   scores AppraisalScore[]
 
   @@unique([subjectStaffId, raterRole, session, term])
+  @@index([schoolId])
+}
+
+// A teacher's assignment to teach one SUBJECT in one CLASS. A teacher may have
+// many of these across many classes. Independent of form-teacher ownership
+// (Class.teacherId). This is what gates score entry & subject remarks.
+model TeachingAssignment {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId  String
+  teacher   Staff    @relation("TeacherAssignments", fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId   String
+  createdAt DateTime @default(now())
+
+  @@unique([teacherId, subjectId, classId]) // one assignment per subject-in-class per teacher
+  @@index([schoolId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
+// The FORM (class) teacher's overall remark for a student, per session+term.
+// Written only by the form teacher of the student's class (or Owner/HOS).
+model ReportRemark {
+  id                 String   @id @default(cuid())
+  school             School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId           String
+  student            Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId          String
+  session            String
+  term               String
+  classTeacherRemark String?  @db.Text
+  authorId           String? // staffId of the form teacher who wrote it
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([studentId, session, term])
   @@index([schoolId])
 }
 

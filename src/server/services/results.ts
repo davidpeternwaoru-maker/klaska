@@ -7,11 +7,11 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { gradeFor, CA1_MAX, CA2_MAX, EXAM_MAX } from "@/lib/results";
 import { canEnterScores, canManageSubjects } from "@/lib/auth/permissions";
-import { type Ctx, ServiceError, classScopeWhere } from "@/server/context";
+import { type Ctx, ServiceError, classScopeWhere, teacherTeachesSubjectInClass } from "@/server/context";
 
 const classLabel = (c: { name: string; arm: string | null }) => (c.arm ? `${c.name} ${c.arm}` : c.name);
 
-export type ExistingResult = { ca1: number | null; ca2: number | null; exam: number | null; total: number | null; grade: string | null };
+export type ExistingResult = { ca1: number | null; ca2: number | null; exam: number | null; total: number | null; grade: string | null; subjectRemark: string | null };
 export type GridData = {
   hasClasses: boolean;
   hasSubjects: boolean;
@@ -32,14 +32,40 @@ function clampScore(v: unknown, max: number): number | null {
 }
 
 export const resultsService = {
-  /** Everything the results-entry grid needs for a class + subject. */
+  /** Everything the results-entry grid needs for a class + subject.
+   *  For a TEACHER the class + subject pickers are driven by their subject
+   *  assignments: they can only pick classes they teach, and within a class only
+   *  the subjects they teach there. Leadership sees every class + subject. */
   async grid(ctx: Ctx, params: { classId?: string; subjectId?: string }): Promise<GridData> {
-    const [classes, subjects] = await Promise.all([
-      prisma.class.findMany({ where: classScopeWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] }),
-      prisma.subject.findMany({ where: { schoolId: ctx.schoolId }, orderBy: { name: "asc" } }),
-    ]);
-    const classId = params.classId || classes[0]?.id || "";
-    const subjectId = params.subjectId || subjects[0]?.id || "";
+    let classOptions: { value: string; label: string }[];
+    let subjectOptions: { value: string; label: string }[];
+    let classId: string;
+    let subjectId: string;
+
+    if (ctx.role === "TEACHER") {
+      const assigns = await prisma.teachingAssignment.findMany({
+        where: { schoolId: ctx.schoolId, teacherId: ctx.staffId },
+        include: { subject: { select: { id: true, name: true } }, class: { select: { id: true, name: true, arm: true } } },
+        orderBy: { createdAt: "asc" },
+      });
+      const classMap = new Map<string, string>();
+      for (const a of assigns) classMap.set(a.classId, classLabel(a.class));
+      classOptions = [...classMap].map(([value, label]) => ({ value, label }));
+      classId = params.classId && classMap.has(params.classId) ? params.classId : classOptions[0]?.value ?? "";
+      const subjMap = new Map<string, string>();
+      for (const a of assigns) if (a.classId === classId) subjMap.set(a.subject.id, a.subject.name);
+      subjectOptions = [...subjMap].map(([value, label]) => ({ value, label }));
+      subjectId = params.subjectId && subjMap.has(params.subjectId) ? params.subjectId : subjectOptions[0]?.value ?? "";
+    } else {
+      const [classes, subjects] = await Promise.all([
+        prisma.class.findMany({ where: classScopeWhere(ctx), orderBy: [{ name: "asc" }, { arm: "asc" }] }),
+        prisma.subject.findMany({ where: { schoolId: ctx.schoolId }, orderBy: { name: "asc" } }),
+      ]);
+      classOptions = classes.map((c) => ({ value: c.id, label: classLabel(c) }));
+      subjectOptions = subjects.map((s) => ({ value: s.id, label: s.name }));
+      classId = params.classId || classes[0]?.id || "";
+      subjectId = params.subjectId || subjects[0]?.id || "";
+    }
 
     let students: { id: string; name: string }[] = [];
     let existing: Record<string, ExistingResult> = {};
@@ -47,13 +73,13 @@ export const resultsService = {
       const list = await prisma.student.findMany({ where: { schoolId: ctx.schoolId, classId }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] });
       students = list.map((s) => ({ id: s.id, name: `${s.firstName} ${s.lastName}` }));
       const rows = await prisma.result.findMany({ where: { schoolId: ctx.schoolId, subjectId, studentId: { in: students.map((s) => s.id) } } });
-      existing = Object.fromEntries(rows.map((r) => [r.studentId, { ca1: r.ca1, ca2: r.ca2, exam: r.exam, total: r.total, grade: r.grade }]));
+      existing = Object.fromEntries(rows.map((r) => [r.studentId, { ca1: r.ca1, ca2: r.ca2, exam: r.exam, total: r.total, grade: r.grade, subjectRemark: r.subjectRemark }]));
     }
     return {
-      hasClasses: classes.length > 0,
-      hasSubjects: subjects.length > 0,
-      classOptions: classes.map((c) => ({ value: c.id, label: classLabel(c) })),
-      subjectOptions: subjects.map((s) => ({ value: s.id, label: s.name })),
+      hasClasses: classOptions.length > 0,
+      hasSubjects: subjectOptions.length > 0,
+      classOptions,
+      subjectOptions,
       classId,
       subjectId,
       students,
@@ -62,7 +88,7 @@ export const resultsService = {
     };
   },
 
-  async save(ctx: Ctx, subjectId: string, classId: string, entries: { studentId: string; ca1?: unknown; ca2?: unknown; exam?: unknown }[]): Promise<number> {
+  async save(ctx: Ctx, subjectId: string, classId: string, entries: { studentId: string; ca1?: unknown; ca2?: unknown; exam?: unknown; subjectRemark?: unknown }[]): Promise<number> {
     if (!canEnterScores(ctx.role)) throw new ServiceError("Your role can view scores but not enter them.");
     if (!subjectId || !classId) throw new ServiceError("Pick a class and a subject first.", "INVALID");
 
@@ -73,7 +99,10 @@ export const resultsService = {
     ]);
     if (!subject) throw new ServiceError("Subject not found.", "NOT_FOUND");
     if (!klass) throw new ServiceError("Class not found.", "NOT_FOUND");
-    if (ctx.role === "TEACHER" && klass.teacherId !== ctx.staffId) throw new ServiceError("You can only enter results for your own class.");
+    // A teacher may enter scores ONLY for a subject they're assigned in THIS class.
+    if (ctx.role === "TEACHER" && !(await teacherTeachesSubjectInClass(ctx, subjectId, classId))) {
+      throw new ServiceError("You can only enter scores for subjects you teach in classes you're assigned to.");
+    }
     // Results are now history: each belongs to a specific session + term, so a
     // current term must be set (results accumulate instead of overwriting).
     const session = school?.session ?? null;
@@ -90,17 +119,19 @@ export const resultsService = {
         const exam = clampScore(e.exam, EXAM_MAX);
         const hasAny = ca1 != null || ca2 != null || exam != null;
         const total = hasAny ? (ca1 ?? 0) + (ca2 ?? 0) + (exam ?? 0) : null;
-        return { e, ca1, ca2, exam, total, grade: total != null ? gradeFor(total) : null, hasAny };
+        const remark = typeof e.subjectRemark === "string" ? e.subjectRemark.trim() || null : undefined;
+        return { e, ca1, ca2, exam, total, grade: total != null ? gradeFor(total) : null, hasAny, remark };
       })
-      .filter((x) => x.hasAny)
+      // Persist a row if it has any score OR a written subject remark.
+      .filter((x) => x.hasAny || x.remark != null)
       .map((x) =>
         prisma.result.upsert({
           where: { studentId_subjectId_session_term: { studentId: x.e.studentId, subjectId, session, term } },
-          create: { schoolId: ctx.schoolId, studentId: x.e.studentId, subjectId, classId, ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, session, term, recordedBy: ctx.staffId },
-          update: { ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, classId, recordedBy: ctx.staffId },
+          create: { schoolId: ctx.schoolId, studentId: x.e.studentId, subjectId, classId, ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, subjectRemark: x.remark ?? null, session, term, recordedBy: ctx.staffId },
+          update: { ca1: x.ca1, ca2: x.ca2, exam: x.exam, total: x.total, grade: x.grade, ...(x.remark !== undefined ? { subjectRemark: x.remark } : {}), classId, recordedBy: ctx.staffId },
         }),
       );
-    if (ops.length === 0) throw new ServiceError("Enter at least one score.", "INVALID");
+    if (ops.length === 0) throw new ServiceError("Enter at least one score or remark.", "INVALID");
     try {
       await prisma.$transaction(ops);
     } catch {

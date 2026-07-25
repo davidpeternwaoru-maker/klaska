@@ -3,13 +3,42 @@
 // Class report-card browser: pick a class, see students ranked by real average,
 // open anyone's printable report card.
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Pill } from "@/components/ui/primitives";
+import { Card, Pill, Button } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { RealReportCard, type CardSchool } from "./RealReportCard";
 import type { StudentCardData, Band } from "@/lib/reportcard";
+import { saveClassRemarkAction } from "@/lib/actions/reportcard";
+
+function ClassRemarkEditor({ card }: { card: StudentCardData }) {
+  const router = useRouter();
+  const [text, setText] = useState(card.classTeacherRemark ?? "");
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+  function save() {
+    start(async () => {
+      const r = await saveClassRemarkAction(card.studentId, text);
+      setMsg(r.ok ? "Saved." : r.error);
+      if (r.ok) { setTimeout(() => setMsg(null), 2000); router.refresh(); }
+    });
+  }
+  return (
+    <Card className="k-noprint mb-2">
+      <div className="flex items-center justify-between">
+        <div className="text-[13px] font-semibold text-ink">Class-teacher remark — {card.name}</div>
+        {msg && <span className="text-[12px] font-medium text-forest">{msg}</span>}
+      </div>
+      <div className="mt-1 text-[11.5px] text-ink-4">As this class&apos;s form teacher, write the overall remark. It appears on the printed report card.</div>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder="e.g. A diligent term. Keep up the steady improvement in Mathematics."
+        className="mt-2 w-full rounded-[9px] border border-border bg-secondary p-2.5 text-[12.5px] text-ink outline-none focus:border-forest-line focus:bg-card" />
+      <div className="mt-2 flex justify-end">
+        <Button kind="primary" size="sm" icon="check" disabled={pending} onClick={save}>{pending ? "Saving…" : "Save remark"}</Button>
+      </div>
+    </Card>
+  );
+}
 
 const hueOf = (s: string) => {
   let h = 0;
@@ -30,6 +59,7 @@ export function ReportCardsBrowser({
   cards,
   numberInClass,
   bands,
+  canEditRemark = false,
 }: {
   classes: { value: string; label: string }[];
   classId: string;
@@ -38,6 +68,7 @@ export function ReportCardsBrowser({
   cards: StudentCardData[];
   numberInClass: number;
   bands: Band[];
+  canEditRemark?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState<StudentCardData | null>(null);
@@ -106,7 +137,15 @@ export function ReportCardsBrowser({
       </Card>
 
       {open && (
-        <RealReportCard school={school} klassLabel={klassLabel} card={open} numberInClass={numberInClass} bands={bands} onClose={() => setOpen(null)} />
+        <RealReportCard
+          school={school}
+          klassLabel={klassLabel}
+          card={open}
+          numberInClass={numberInClass}
+          bands={bands}
+          onClose={() => setOpen(null)}
+          remarkEditor={canEditRemark ? <ClassRemarkEditor key={open.studentId} card={open} /> : undefined}
+        />
       )}
     </>
   );

@@ -106,61 +106,85 @@ export function BursarOverview({
 export function TeacherOverview({
   greet,
   schoolName,
-  classes,
+  ownedClass,
+  teaching,
   presentToday,
   myStudents,
 }: {
   greet: string;
   schoolName: string;
-  classes: { id: string; label: string; students: number }[];
+  ownedClass: { id: string; label: string; students: number } | null;
+  teaching: { subject: string; classes: string[] }[];
   presentToday: number;
   myStudents: number;
 }) {
   const presentPct = myStudents ? Math.round((presentToday / myStudents) * 100) : 0;
+  const subjectCount = teaching.length;
   return (
     <div className="mx-auto max-w-[1320px]">
       <SectionTitle
-        eyebrow="Overview · My classes"
+        eyebrow="Overview · My teaching"
         title={`Welcome, ${greet}`}
-        sub={`Your classes at ${schoolName} today.`}
+        sub={ownedClass ? `Form teacher of ${ownedClass.label} at ${schoolName}.` : `Your subjects at ${schoolName} today.`}
         right={
-          <Link href="/people/attendance" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
-            <Icon name="attendance" size={15} /> Take attendance
+          <Link href="/academics/results" className="inline-flex items-center gap-1.5 rounded-[var(--radius-card)] bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-forest-2">
+            <Icon name="edit" size={15} /> Enter scores
           </Link>
         }
       />
       <div className="k-stagger grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <KPI label="My classes" value={String(classes.length)} delta="assigned to you" sub="" icon="layers" />
+        <KPI label="Subjects I teach" value={String(subjectCount)} delta={ownedClass ? "+ form class" : "subject teacher"} sub="" icon="book" />
         <KPI label="My students" value={String(myStudents)} delta="across your classes" sub="" icon="students" />
         <KPI label="Present today" value={`${presentPct}%`} delta={`${presentToday}/${myStudents}`} deltaTone="green" sub="" icon="attendance" />
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <Card pad={0} className="overflow-hidden lg:col-span-2">
-          <div className="p-5 text-body font-semibold text-ink">My classes</div>
-          {classes.length === 0 ? (
-            <div className="px-5 pb-10 pt-2 text-center text-[13px] text-ink-4">
-              No classes assigned to you yet — ask your admin to set you as a form teacher under People → Classes.
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {classes.map((c) => (
-                <div key={c.id} className="flex items-center gap-3 px-5 py-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest">
-                    <Icon name="layers" size={16} />
-                  </span>
-                  <span className="flex-1 text-[13.5px] font-medium text-ink">{c.label}</span>
-                  <Pill tone="neutral">{c.students} students</Pill>
-                  <Link href={`/people/attendance?classId=${c.id}`} className="text-[12.5px] font-medium text-forest hover:underline">Mark →</Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        <div className="flex flex-col gap-5 lg:col-span-2">
+          {/* Owned (form) class — shown distinctly */}
+          <Card pad={0} className="overflow-hidden">
+            <div className="p-5 text-body font-semibold text-ink">My form class</div>
+            {ownedClass ? (
+              <div className="flex items-center gap-3 border-t border-border px-5 py-4">
+                <span className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-card)] bg-forest text-white"><Icon name="layers" size={18} /></span>
+                <span className="flex-1">
+                  <span className="block text-[14px] font-semibold text-ink">{ownedClass.label}</span>
+                  <span className="block text-[12px] text-ink-4">You own this class — daily register &amp; report-card remarks</span>
+                </span>
+                <Pill tone="forest">{ownedClass.students} students</Pill>
+                <Link href={`/people/attendance?classId=${ownedClass.id}`} className="text-[12.5px] font-medium text-forest hover:underline">Register →</Link>
+              </div>
+            ) : (
+              <div className="border-t border-border px-5 py-6 text-center text-[13px] text-ink-4">You&apos;re a subject teacher — no form class assigned.</div>
+            )}
+          </Card>
+
+          {/* Subject assignments */}
+          <Card pad={0} className="overflow-hidden">
+            <div className="p-5 text-body font-semibold text-ink">Subjects I teach</div>
+            {teaching.length === 0 ? (
+              <div className="border-t border-border px-5 pb-10 pt-4 text-center text-[13px] text-ink-4">
+                No subject assignments yet — ask your principal to assign your subjects and classes under People → Staff.
+              </div>
+            ) : (
+              <div className="divide-y divide-border border-t border-border">
+                {teaching.map((t) => (
+                  <div key={t.subject} className="flex items-center gap-3 px-5 py-3">
+                    <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[var(--radius-card)] bg-forest-soft text-forest"><Icon name="book" size={16} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13.5px] font-medium text-ink">{t.subject}</span>
+                      <span className="block text-[12px] text-ink-4">{t.classes.join(" · ")}</span>
+                    </span>
+                    <Link href="/academics/results" className="text-[12.5px] font-medium text-forest hover:underline">Scores →</Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
         <QuickActions
           items={[
-            { href: "/people/attendance", label: "Take attendance", icon: "attendance" },
             { href: "/academics/results", label: "Enter scores", icon: "edit" },
+            { href: "/people/attendance", label: "Take attendance", icon: "attendance" },
             { href: "/academics/report-cards", label: "Report cards", icon: "reports" },
             { href: "/people/students", label: "My students", icon: "students" },
           ]}

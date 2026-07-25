@@ -4,10 +4,12 @@
 // password, so they can sign in immediately. Only owners/bursars see this work
 // (the server action enforces it regardless of the UI).
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { Card, Pill } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { createStaff, deleteStaff, resetStaffPassword, type ActionState } from "@/lib/actions/staff";
+import { getTeachingAction, setFormClassAction, addAssignmentAction, removeAssignmentAction } from "@/lib/actions/teaching";
+import type { TeacherTeaching, TeachingOptions } from "@/server/services/teaching";
 
 export type StaffRow = {
   id: string;
@@ -135,8 +137,99 @@ function ResetModal({ staff, onClose }: { staff: StaffRow; onClose: () => void }
   );
 }
 
-export function StaffManager({ staff }: { staff: StaffRow[] }) {
+function TeachingModal({ staff, options, onClose }: { staff: StaffRow; options: TeachingOptions; onClose: () => void }) {
+  const [data, setData] = useState<TeacherTeaching | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const [subjectId, setSubjectId] = useState("");
+  const [classId, setClassId] = useState("");
+
+  async function reload() {
+    const r = await getTeachingAction(staff.id);
+    if (r.ok) setData(r.data);
+    else setErr(r.error);
+  }
+  useEffect(() => { reload(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const act = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
+    start(async () => { setErr(null); const r = await fn(); if (!r.ok) setErr(r.error ?? "Something went wrong."); await reload(); });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="mt-10 w-full max-w-[560px]" onClick={(e) => e.stopPropagation()}>
+        <Card>
+          <div className="mb-1 flex items-center justify-between">
+            <div className="text-body font-semibold text-ink">Teaching duties</div>
+            <button onClick={onClose} className="rounded-[7px] p-1.5 text-ink-3 hover:bg-secondary"><Icon name="x" size={16} /></button>
+          </div>
+          <div className="mb-4 text-[12.5px] text-ink-4">Set <span className="font-medium text-ink-2">{staff.name}</span>&apos;s form class and the subjects they teach in each class. These are independent — a teacher can have either, both, or neither.</div>
+
+          {/* Form teacher */}
+          <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-wide text-ink-4">Form teacher of</div>
+          <select
+            value={data?.formClassId ?? ""}
+            disabled={!data || pending}
+            onChange={(e) => act(() => setFormClassAction(staff.id, e.target.value || null))}
+            className={input}
+          >
+            <option value="">— No form class (subject teacher only) —</option>
+            {options.classes.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+          <div className="mt-1 text-[11px] text-ink-4">A teacher owns at most one class. Choosing a class releases any class they previously owned.</div>
+
+          {/* Subject assignments */}
+          <div className="mt-5 mb-2 text-[11.5px] font-semibold uppercase tracking-wide text-ink-4">Subjects taught (subject × class)</div>
+          {data && data.assignments.length > 0 ? (
+            <div className="mb-3 flex flex-col gap-1.5">
+              {data.assignments.map((a) => (
+                <div key={a.id} className="flex items-center justify-between rounded-[9px] bg-secondary px-3 py-2 text-[12.5px]">
+                  <span className="text-ink"><span className="font-medium">{a.subjectName}</span> <span className="text-ink-4">in</span> {a.classLabel}</span>
+                  <button disabled={pending} onClick={() => act(() => removeAssignmentAction(a.id))} title="Remove" className="rounded-[6px] p-1 text-ink-3 hover:bg-red-soft hover:text-red disabled:opacity-50"><Icon name="trash" size={14} /></button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mb-3 rounded-[9px] bg-secondary px-3 py-2.5 text-[12px] text-ink-4">No subjects assigned yet.</div>
+          )}
+
+          <div className="flex items-end gap-2">
+            <label className="flex-1">
+              <span className="mb-1 block text-[11px] text-ink-4">Subject</span>
+              <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} className={input}>
+                <option value="">Pick subject…</option>
+                {options.subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </label>
+            <label className="flex-1">
+              <span className="mb-1 block text-[11px] text-ink-4">Class</span>
+              <select value={classId} onChange={(e) => setClassId(e.target.value)} className={input}>
+                <option value="">Pick class…</option>
+                {options.classes.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </label>
+            <button
+              disabled={pending || !subjectId || !classId}
+              onClick={() => act(async () => { const r = await addAssignmentAction(staff.id, subjectId, classId); if (r.ok) { setSubjectId(""); setClassId(""); } return r; })}
+              className="h-9 flex-none rounded-[9px] bg-forest px-4 text-[13px] font-semibold text-white transition hover:bg-forest-2 disabled:opacity-50"
+            >
+              Add
+            </button>
+          </div>
+
+          {err && <p className="mt-3 text-[12.5px] font-medium text-red">{err}</p>}
+          <div className="mt-4 flex justify-end">
+            <button onClick={onClose} className="h-9 rounded-[9px] border border-border px-4 text-[13px] font-medium text-ink-2 hover:bg-secondary">Done</button>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export function StaffManager({ staff, canManageTeaching = false, options = { classes: [], subjects: [] } }: { staff: StaffRow[]; canManageTeaching?: boolean; options?: TeachingOptions }) {
   const [resetting, setResetting] = useState<StaffRow | null>(null);
+  const [teaching, setTeaching] = useState<StaffRow | null>(null);
+  const showTeach = (s: StaffRow) => canManageTeaching && (s.role === "TEACHER" || s.role === "HOD");
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
       <Card pad={0} className="overflow-hidden">
@@ -167,6 +260,11 @@ export function StaffManager({ staff }: { staff: StaffRow[] }) {
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {showTeach(s) && (
+                        <button onClick={() => setTeaching(s)} title="Teaching duties" className="rounded-[7px] p-1.5 text-ink-3 hover:bg-secondary hover:text-ink">
+                          <Icon name="book" size={15} />
+                        </button>
+                      )}
                       <button onClick={() => setResetting(s)} title="Reset password" className="rounded-[7px] p-1.5 text-ink-3 hover:bg-secondary hover:text-ink">
                         <Icon name="refresh" size={15} />
                       </button>
@@ -191,6 +289,7 @@ export function StaffManager({ staff }: { staff: StaffRow[] }) {
 
       <AddForm />
       {resetting && <ResetModal staff={resetting} onClose={() => setResetting(null)} />}
+      {teaching && <TeachingModal staff={teaching} options={options} onClose={() => setTeaching(null)} />}
     </div>
   );
 }

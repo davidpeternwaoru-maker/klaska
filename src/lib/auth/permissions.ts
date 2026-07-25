@@ -61,6 +61,9 @@ export const canEnterScores = (r: Role) => r === "HOS" || r === "TEACHER" || r =
 export const canManageStudents = (r: Role) => r === "OWNER" || r === "HOS" || r === "ADMIN";
 export const canManageSubjects = (r: Role) => r === "OWNER" || r === "HOS";
 export const canManageClasses = (r: Role) => r === "OWNER" || r === "HOS";
+// Teaching duties (form-teacher + subject-in-class assignments) are academic
+// structure — set by the proprietor or principal, not the bursar.
+export const canManageTeaching = (r: Role) => r === "OWNER" || r === "HOS";
 export const canEditAcademicSettings = (r: Role) => r === "OWNER" || r === "HOS"; // term, grading (HOS "Limited")
 export const canEditFeeStructure = (r: Role) => r === "OWNER" || r === "BURSAR"; // Bursar "Fee setup"
 

@@ -6,6 +6,7 @@ import "server-only";
 // limiter can never take the whole app down.
 
 import { prisma } from "@/lib/db";
+import { captureError } from "@/lib/logger";
 
 /** Increment the counter for `key`, resetting if its window elapsed. Returns the
  *  new count within the current window. Done as ONE atomic upsert so concurrent
@@ -21,7 +22,7 @@ export async function bumpRate(key: string, windowSec: number): Promise<number> 
       RETURNING "count";`;
     return rows[0]?.count ?? 0;
   } catch (e) {
-    console.error("[ratelimit] bump error", e);
+    captureError(e, { scope: "ratelimit", key });
     return 0; // fail open — the limiter must never take the app down
   }
 }

@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceError } from "@/server/context";
 import { rateLimit } from "@/server/ratelimit";
+import { captureError } from "@/lib/logger";
 import type { SessionUser } from "@/lib/auth/jwt";
 
 /** Per-IP rate limit for an API route. Returns a 429 response if over the limit,
@@ -33,8 +34,9 @@ export function fail(e: unknown) {
     const status = e.code === "NOT_FOUND" ? 404 : e.code === "INVALID" ? 422 : 403;
     return err(e.code, e.message, status);
   }
-  // Unknown/infra error: log server-side, return a generic message.
-  console.error("[api] unhandled error:", e);
+  // Unknown/infra error: capture server-side, return a generic message (never
+  // a stack trace or internal detail to the client).
+  captureError(e, { scope: "api" });
   return err("INTERNAL", "Something went wrong. Please try again.", 500);
 }
 

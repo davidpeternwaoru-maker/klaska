@@ -18,6 +18,11 @@ const schema = z.object({
   DIRECT_URL: z.string().optional(),
   // Secret used to sign session JWTs. Must be long enough to be safe.
   AUTH_SECRET: z.string().min(16, "AUTH_SECRET must be at least 16 characters"),
+  // Optional: an HTTPS endpoint to forward server errors to (Sentry-compatible
+  // proxy, Logtail, etc.). When set, captureError POSTs each error there.
+  MONITOR_WEBHOOK: z.string().url().optional(),
+  // Optional build/version stamp surfaced by the health check.
+  APP_VERSION: z.string().optional(),
 });
 
 function load() {

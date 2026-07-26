@@ -6,6 +6,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
+import { captureError } from "@/lib/logger";
 
 export type AuditAction =
   | "LOGIN"
@@ -51,6 +52,6 @@ export async function logAudit(input: {
       },
     });
   } catch (e) {
-    console.error("[audit] failed to write", input.action, e);
+    captureError(e, { scope: "audit", action: input.action });
   }
 }

@@ -6,6 +6,33 @@ should review before we handle real student data and payments.**
 
 ---
 
+## Environment separation (operational — keep this true)
+
+Every environment must have its **own** secret and its **own** database. Mixing
+them means a leaked dev secret can forge production sessions, or local work can
+corrupt real data.
+
+| | `AUTH_SECRET` | Database (Neon branch) |
+|---|---|---|
+| **Production** (Vercel) | unique secret A — **done & verified** ✅ | production branch |
+| **Preview** (Vercel) | its own secret (A or a separate B) | a dev/preview branch (never production) |
+| **Local dev** (your `.env`) | a different secret again | a **`dev` Neon branch** (never production) |
+
+Rules:
+- On Vercel, set `AUTH_SECRET`/`DATABASE_URL`/`DIRECT_URL` as **Sensitive**, scoped
+  to Production and Preview. The "Development" scope is **not** used — local dev
+  reads from the `.env` file on the machine, not from Vercel.
+- **Never** run `vercel env pull` into a working tree that shares production —
+  it would copy production's secret onto a laptop.
+- Rotating a secret logs everyone in that environment out (by design). To rotate:
+  change the value in Vercel, then **redeploy** (env changes only apply to new
+  deployments).
+
+**Remaining to-do:** point local `.env` `DATABASE_URL`/`DIRECT_URL` at a dedicated
+Neon `dev` branch so day-to-day local work no longer touches production data.
+
+---
+
 ## Security measures in place
 
 ### Authentication

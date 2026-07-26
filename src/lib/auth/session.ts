@@ -6,9 +6,19 @@
 // imported by middleware — middleware uses jwt.ts directly instead.
 
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 import { signToken, verifyToken, SESSION_COOKIE, type SessionUser } from "./jwt";
+
+// One memoised read of the account's current token version per request. The
+// token carries the version it was issued at; a mismatch (after logout or a
+// password reset bumped it) means the token is revoked.
+const accountTokenVersion = cache(async (staffId: string): Promise<number | null> => {
+  const s = await prisma.staff.findUnique({ where: { id: staffId }, select: { tokenVersion: true } });
+  return s ? s.tokenVersion : null;
+});
 
 const SEVEN_DAYS = 60 * 60 * 24 * 7;
 
@@ -31,7 +41,14 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return verifyToken(token);
+  const user = await verifyToken(token);
+  if (!user) return null;
+  // Token invalidation: the token's version must match the account's current
+  // version. Legacy tokens (no version) are treated as 0, so they stay valid
+  // until someone bumps the account (logout / password reset), then are revoked.
+  const current = await accountTokenVersion(user.staffId);
+  if (current === null || current !== (user.tokenVersion ?? 0)) return null;
+  return user;
 }
 
 /** Use at the top of a protected page: returns the user or redirects to /login. */

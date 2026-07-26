@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiUser, ok, err, fail } from "@/lib/api";
+import { requireApiUser, ok, err, fail, apiRateLimit } from "@/lib/api";
 import { studentsService } from "@/server/services/students";
 import { requireCan } from "@/server/context";
 import { parse } from "@/lib/validation";
@@ -10,6 +10,8 @@ import { pageSchema } from "@/lib/schemas";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  const limited = await apiRateLimit(req);
+  if (limited) return limited;
   const user = await requireApiUser();
   if (user instanceof NextResponse) return user;
 

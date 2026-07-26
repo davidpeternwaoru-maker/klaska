@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiUser, ok, fail } from "@/lib/api";
+import { requireApiUser, ok, fail, apiRateLimit } from "@/lib/api";
 
 // The authenticated caller's own identity — the reference example for the
 // versioned API: authenticate via the shared session cookie, return the JSON
@@ -7,7 +7,9 @@ import { requireApiUser, ok, fail } from "@/lib/api";
 // same way the web app would.
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const limited = await apiRateLimit(req);
+  if (limited) return limited;
   const user = await requireApiUser();
   if (user instanceof NextResponse) return user; // 401 envelope
   try {

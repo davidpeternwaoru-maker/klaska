@@ -6,7 +6,8 @@
 import bcrypt from "bcryptjs";
 
 export function hashPassword(plain: string): Promise<string> {
-  return bcrypt.hash(plain, 10); // 10 = work factor (cost)
+  return bcrypt.hash(plain, 12); // 12 = work factor (cost). Existing cost-10
+  // hashes still verify fine — the cost is embedded in the hash itself.
 }
 
 export function verifyPassword(plain: string, hash: string): Promise<boolean> {

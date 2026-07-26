@@ -109,6 +109,7 @@ model School {
   transcripts      Transcript[]
   teachingAssignments TeachingAssignment[]
   reportRemarks    ReportRemark[]
+  auditLogs        AuditLog[]
 }
 
 // One PERSON, many children (the guardian-student decoupling). The import
@@ -155,6 +156,9 @@ model Staff {
   email        String   @unique // used to log in; unique across the whole system
   passwordHash String // never store raw passwords — only a bcrypt hash
   role         Role     @default(TEACHER)
+  // Bumped on logout / password reset to invalidate every JWT issued before it
+  // (token invalidation without a per-request session store).
+  tokenVersion Int      @default(0)
   title        String? // e.g. "Mathematics Teacher", "Head of Science"
   // The department this staff member belongs to. A HOD heads their department;
   // teachers in that same department are the ones the HOD may appraise.
@@ -812,6 +816,36 @@ model ReportRemark {
 
   @@unique([studentId, session, term])
   @@index([schoolId])
+}
+
+// Append-only audit trail of important actions — logins, permission/account
+// changes, financial actions, exports — for accountability. Tenant-scoped
+// (schoolId nullable so pre-auth events like failed logins can be recorded).
+model AuditLog {
+  id         String   @id @default(cuid())
+  school     School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  schoolId   String?
+  actorId    String? // staffId of who did it (null for anonymous/failed login)
+  actorEmail String?
+  action     String // LOGIN | LOGIN_FAILED | LOGOUT | STAFF_CREATE | STAFF_REMOVE | PASSWORD_RESET | FEE_PAYMENT | DATA_EXPORT | ...
+  target     String? // what was acted on (e.g. a staff/student id, "payroll.xlsx")
+  ip         String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@index([action, createdAt])
+}
+
+// Fixed-window rate-limit counters (DB-backed so limits are shared across app
+// instances — no in-memory state that breaks when we scale horizontally).
+// Not tenant-scoped: keys are by IP / email, often pre-auth.
+model RateHit {
+  key       String   @id // e.g. "login:ip:1.2.3.4" or "api:ip:1.2.3.4"
+  count     Int      @default(0)
+  expiresAt DateTime // when the current window resets
+
+  @@index([expiresAt])
 }
 
 model AppraisalScore {

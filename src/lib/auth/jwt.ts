@@ -21,6 +21,9 @@ export type SessionUser = {
   email: string;
   /** Has this school finished the onboarding wizard? Drives the setup gate. */
   setupComplete: boolean;
+  /** Matched against Staff.tokenVersion on the server; a bump (logout / password
+   *  reset) invalidates every token issued before it. Absent on legacy tokens. */
+  tokenVersion?: number;
 };
 
 export const SESSION_COOKIE = "klaska_session";
@@ -53,6 +56,7 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
       // Tokens minted before this field existed are treated as complete, so
       // already-signed-in users are never wrongly trapped in the wizard.
       setupComplete: payload.setupComplete === undefined ? true : Boolean(payload.setupComplete),
+      tokenVersion: payload.tokenVersion === undefined ? undefined : Number(payload.tokenVersion),
     };
   } catch {
     return null; // bad signature, expired, or malformed

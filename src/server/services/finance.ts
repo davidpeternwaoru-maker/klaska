@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { canManage, canView } from "@/lib/auth/permissions";
 import { detectTerm, TERM_LABEL, type TermKey } from "@/lib/terms";
 import { type Ctx, ServiceError } from "@/server/context";
+import { logAudit } from "@/server/services/audit";
 import type { FeeRow, ClassStat, FeeKpis } from "@/components/finance/FeesCollection";
 import type { MonthPoint, CostSlice, LevelRevenue, ExpenseRow, PayRow, Hero, PayrollInfo } from "@/components/finance/FinancialOS";
 
@@ -87,9 +88,10 @@ export const financeService = {
     if (!["CASH", "TRANSFER", "POS"].includes(input.method)) throw new ServiceError("Pick a payment method.", "INVALID");
     const invoice = await prisma.invoice.findFirst({ where: { id: input.invoiceId, schoolId: ctx.schoolId } });
     if (!invoice) throw new ServiceError("Invoice not found.", "NOT_FOUND");
-    await prisma.payment.create({
+    const payment = await prisma.payment.create({
       data: { schoolId: ctx.schoolId, studentId: invoice.studentId, invoiceId: input.invoiceId, amount, method: input.method, reference: input.reference?.trim() || null, recordedBy: ctx.name },
     });
+    await logAudit({ action: "FEE_PAYMENT", schoolId: ctx.schoolId, actorId: ctx.staffId, actorEmail: ctx.email, target: payment.id, meta: { amount, method: input.method, invoiceId: input.invoiceId } });
   },
 
   async deletePayment(ctx: Ctx, id: string): Promise<void> {
@@ -105,6 +107,7 @@ export const financeService = {
       prisma.school.findUnique({ where: { id: ctx.schoolId }, select: { name: true, session: true, term: true } }),
       prisma.staff.findMany({ where: { schoolId: ctx.schoolId }, orderBy: { name: "asc" }, select: { name: true, role: true, title: true, salaryMonthly: true } }),
     ]);
+    await logAudit({ action: "DATA_EXPORT", schoolId: ctx.schoolId, actorId: ctx.staffId, actorEmail: ctx.email, target: "payroll", meta: { rows: staff.length } });
     return {
       school: school?.name ?? "Your school",
       session: school?.session ?? fallback.session,

@@ -6,7 +6,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceError } from "@/server/context";
+import { rateLimit } from "@/server/ratelimit";
 import type { SessionUser } from "@/lib/auth/jwt";
+
+/** Per-IP rate limit for an API route. Returns a 429 response if over the limit,
+ *  or null to proceed. Call at the top of every route handler. */
+export async function apiRateLimit(req: Request, limit = 120, windowSec = 60): Promise<NextResponse | null> {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+  const { allowed } = await rateLimit(`api:ip:${ip}`, limit, windowSec);
+  return allowed ? null : err("RATE_LIMITED", "Too many requests. Please slow down.", 429);
+}
 
 export type ApiOk<T> = { ok: true; data: T };
 export type ApiErr = { ok: false; error: { code: string; message: string } };

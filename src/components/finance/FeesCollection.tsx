@@ -11,6 +11,7 @@ import { Card, Pill, SectionTitle } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { generateInvoices, recordPayment, type FinanceState } from "@/lib/actions/finance";
+import { createPaymentLinkAction } from "@/lib/actions/payments";
 import { type ExportMeta } from "@/lib/export/real-exports";
 import { exportExcel, exportPdf } from "@/lib/export/engine";
 import { feesReport, defaultersReport } from "@/lib/export/reports";
@@ -117,6 +118,11 @@ function PayModal({ row, onClose }: { row: FeeRow; onClose: () => void }) {
               </button>
             </div>
           </form>
+          {balance > 0 && (
+            <div className="mt-4 border-t border-border pt-3">
+              <PaymentLink invoiceId={row.id} />
+            </div>
+          )}
           {row.payments.length > 0 && (
             <div className="mt-4 border-t border-border pt-3">
               <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-4">Payment history</div>
@@ -130,6 +136,53 @@ function PayModal({ row, onClose }: { row: FeeRow; onClose: () => void }) {
           )}
         </Card>
       </div>
+    </div>
+  );
+}
+
+/* ---------- generate a Paystack payment link to send the parent ---------- */
+function PaymentLink({ invoiceId }: { invoiceId: string }) {
+  const [link, setLink] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function gen() {
+    setBusy(true);
+    setErr(null);
+    const r = await createPaymentLinkAction(invoiceId);
+    setBusy(false);
+    if (r.ok) setLink(r.url);
+    else setErr(r.error);
+  }
+  async function copy() {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — the field is selectable as a fallback */
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-4">Online payment</div>
+      {!link ? (
+        <>
+          <button type="button" onClick={gen} disabled={busy} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-card)] border border-border px-3.5 text-[13px] font-medium text-ink-2 transition hover:bg-secondary disabled:opacity-60">
+            <Icon name="wallet" size={15} /> {busy ? "Generating…" : "Generate payment link"}
+          </button>
+          <p className="mt-1.5 text-[11.5px] text-ink-4">Creates a secure Paystack link to send the parent (WhatsApp/SMS). It reconciles automatically when paid.</p>
+          {err && <p className="mt-1.5 text-[12px] font-medium text-red">{err}</p>}
+        </>
+      ) : (
+        <div className="flex items-center gap-2">
+          <input readOnly value={link} onFocus={(e) => e.currentTarget.select()} className="h-9 flex-1 rounded-[var(--radius-card)] border border-border bg-secondary px-2.5 text-[12px] text-ink-2 outline-none" />
+          <button type="button" onClick={copy} className="h-9 rounded-[var(--radius-card)] bg-forest px-3.5 text-[12.5px] font-semibold text-white transition hover:bg-forest-2">{copied ? "Copied ✓" : "Copy"}</button>
+        </div>
+      )}
     </div>
   );
 }

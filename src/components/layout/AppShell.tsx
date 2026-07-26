@@ -7,7 +7,7 @@ import { TopBar, type TopBarUser } from "./TopBar";
 // The real, database-backed app (auth screens + /dashboard) brings its own
 // chrome, so we render those routes bare. Everything else still gets the
 // original prototype shell (rail + sub-panel + top bar).
-const BARE_PREFIXES = ["/login", "/signup", "/dashboard", "/onboarding"];
+const BARE_PREFIXES = ["/login", "/signup", "/dashboard", "/onboarding", "/pay"];
 
 export type ShellSchool = {
   name: string;

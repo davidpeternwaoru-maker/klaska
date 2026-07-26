@@ -23,6 +23,14 @@ const schema = z.object({
   MONITOR_WEBHOOK: z.string().url().optional(),
   // Optional build/version stamp surfaced by the health check.
   APP_VERSION: z.string().optional(),
+  // Absolute base URL of this deployment (e.g. https://klaska-mu.vercel.app),
+  // used to build payment links + the provider callback. Falls back to the
+  // request's own origin when unset.
+  APP_URL: z.string().url().optional(),
+  // Paystack keys — optional so the app boots without them; online payments are
+  // simply disabled until they're set. Use TEST keys in dev, LIVE keys in prod.
+  PAYSTACK_SECRET_KEY: z.string().optional(),
+  PAYSTACK_PUBLIC_KEY: z.string().optional(),
 });
 
 function load() {
@@ -37,3 +45,5 @@ function load() {
 export const env = load();
 export const isProd = env.NODE_ENV === "production";
 export const isDev = env.NODE_ENV === "development";
+/** True when online payments are configured for this environment. */
+export const paymentsEnabled = !!env.PAYSTACK_SECRET_KEY;

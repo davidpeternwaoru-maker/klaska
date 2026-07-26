@@ -110,6 +110,7 @@ model School {
   teachingAssignments TeachingAssignment[]
   reportRemarks    ReportRemark[]
   auditLogs        AuditLog[]
+  paymentIntents   PaymentIntent[]
 }
 
 // One PERSON, many children (the guardian-student decoupling). The import
@@ -384,6 +385,7 @@ model Invoice {
 
   lines    InvoiceLine[]
   payments Payment[]
+  paymentIntents PaymentIntent[]
 
   @@unique([studentId, session, term]) // one bill per student per term
   @@index([schoolId, session, term])
@@ -846,6 +848,34 @@ model RateHit {
   expiresAt DateTime // when the current window resets
 
   @@index([expiresAt])
+}
+
+// An online payment attempt via a provider (Paystack). Created when a payment
+// link is generated for an invoice; moved to PAID by the signature-verified
+// webhook, which then writes the real Payment. `reference` is unique so a
+// retried webhook can never double-charge (idempotency key).
+model PaymentIntent {
+  id               String    @id @default(cuid())
+  school           School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId         String
+  invoice          Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  invoiceId        String?
+  studentId        String
+  amount           Int // naira (converted to kobo when calling the provider)
+  currency         String    @default("NGN")
+  provider         String    @default("PAYSTACK")
+  reference        String    @unique // our idempotency key, sent to the provider
+  status           String    @default("PENDING") // PENDING | PAID | FAILED | ABANDONED
+  email            String? // payer email required by the provider
+  authorizationUrl String? // provider-hosted checkout URL
+  accessCode       String?
+  channel          String? // card | bank | ussd … (from the provider on success)
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([schoolId])
+  @@index([invoiceId])
 }
 
 model AppraisalScore {

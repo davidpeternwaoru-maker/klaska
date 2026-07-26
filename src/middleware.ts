@@ -12,9 +12,17 @@ import { canView } from "@/lib/auth/permissions";
 import { areaForPath } from "@/lib/auth/access";
 
 const AUTH_PAGES = new Set(["/login", "/signup"]);
+// Public, unauthenticated routes (parent-facing payment pages).
+const PUBLIC_PREFIXES = ["/pay"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Public routes bypass auth entirely (parents have no login).
+  if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    return NextResponse.next();
+  }
+
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const user = token ? await verifyToken(token) : null;
 

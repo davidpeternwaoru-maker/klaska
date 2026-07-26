@@ -25,7 +25,8 @@ export async function createSession(user: SessionUser) {
   });
 }
 
-/** Read the current user from the cookie, or null if not logged in. */
+/** Read the current user from the cookie, or null if not logged in. (The data
+ *  layer resolves the tenant from the same cookie independently — see tenant.ts.) */
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;

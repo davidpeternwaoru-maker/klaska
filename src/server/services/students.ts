@@ -8,6 +8,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { canManageStudents } from "@/lib/auth/permissions";
 import { type Ctx, ServiceError, teacherClassWhere, teacherClassIds } from "@/server/context";
+import { toPrisma, paged, type PageInput, type Paged } from "@/lib/paginate";
 
 export type StudentInput = {
   firstName: string;
@@ -110,6 +111,22 @@ export const studentsService = {
       classId: s.classId,
       className: s.class ? classLabel(s.class) : null,
     }));
+  },
+
+  /** Paginated students (bounded response) — the shape list endpoints/API use so
+   *  results never grow unbounded. Same tenant + teacher scoping as list(). */
+  async listPage(ctx: Ctx, input: PageInput): Promise<Paged<StudentRow>> {
+    const ids = await teacherClassIds(ctx);
+    const where = ids === null ? { schoolId: ctx.schoolId } : { schoolId: ctx.schoolId, classId: { in: ids } };
+    const [rows, total] = await Promise.all([
+      prisma.student.findMany({ where, include: { class: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }], ...toPrisma(input) }),
+      prisma.student.count({ where }),
+    ]);
+    return paged(
+      rows.map((s) => ({ id: s.id, name: `${s.firstName} ${s.lastName}`, admissionNo: s.admissionNo, gender: s.gender, classId: s.classId, className: s.class ? classLabel(s.class) : null })),
+      total,
+      input,
+    );
   },
 
   /** Full editable rows for the "manage students" screen (managers only). */

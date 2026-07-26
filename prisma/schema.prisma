@@ -175,6 +175,8 @@ model Staff {
   appraisalsGiven    Appraisal[] @relation("AppraisalRater")
 
   @@index([schoolId])
+  @@index([schoolId, role]) // staff-by-role (e.g. principal/HOD lookups)
+  @@index([departmentId]) // HOD ↔ department scoping
 }
 
 // A class/arm, e.g. "JSS 1" arm "A". Belongs to a school, may have a teacher.
@@ -204,6 +206,8 @@ model Class {
   // No two classes in the same school can share the same name + arm.
   @@unique([schoolId, name, arm])
   @@index([schoolId])
+  @@index([teacherId]) // form-teacher lookups (owned-class scoping)
+  @@index([departmentId])
 }
 
 // A student. Belongs to a school, optionally assigned to a class.
